@@ -2,6 +2,7 @@ import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 import { isApiError } from '@/api/error';
+import { QUERY_KEYS } from '@/constants/query-key';
 
 declare module '@tanstack/react-query' {
   interface Register {
@@ -33,6 +34,11 @@ export const queryClient = new QueryClient({
   mutationCache: new MutationCache({
     onError: (error, _variables, _context, mutation) =>
       notifyError(error, mutation.meta?.silent),
+    // Almost any write moves a dashboard count, so mark the stats stale and
+    // let the dashboard refetch them the next time it is shown.
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.STATS });
+    },
   }),
   defaultOptions: {
     queries: {

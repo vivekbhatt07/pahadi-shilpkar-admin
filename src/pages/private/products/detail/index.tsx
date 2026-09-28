@@ -6,16 +6,20 @@ import {
   ChevronRight,
   ExternalLink,
   FolderTree,
+  Gift,
   MessageCircle,
   PackageX,
   Pencil,
+  Plus,
   Sparkles,
   Star,
   Trash2,
   TrendingUp,
 } from 'lucide-react';
 
+import Callout from '@/components/custom/Callout';
 import EmptyState from '@/components/custom/EmptyState';
+import ImageThumb from '@/components/custom/ImageThumb';
 import ConfirmDialog from '@/components/dialogs/confirm-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -23,9 +27,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ROUTES } from '@/constants/routes';
 import { formatDateTime, formatPrice } from '@/helpers/format';
-import { useDeleteProduct, useProduct } from '@/hooks/products';
+import {
+  isProductInCombosError,
+  useDeleteProduct,
+  useProduct,
+} from '@/hooks/products';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
+import {
+  comboImages,
+  isComboHidden,
+  toComboProduct,
+} from '../../combos/helpers';
+import { PRODUCT_DETAIL_COMBOS_LIMIT } from '../../combos/constants';
+import type { TCreateComboState } from '../../combos/types';
 import { PRODUCT_DELETE_CONFIRMATION } from '../constants';
 import { AVAILABILITY_LABELS, availabilityVariant } from '../helpers';
 import ProductGallery from './layouts/ProductGallery';
@@ -102,6 +117,10 @@ const ProductDetailPage = () => {
       onSuccess: () => {
         setIsDeleteOpen(false);
         navigate(ROUTES.PRIVATE.PRODUCTS.ROOT, { replace: true });
+      },
+      // Retrying can't help; close so the toast's "View combos" is clickable.
+      onError: (error) => {
+        if (isProductInCombosError(error)) setIsDeleteOpen(false);
       },
     });
   };
@@ -390,6 +409,92 @@ const ProductDetailPage = () => {
               </CardContent>
             </Card>
           )}
+
+          <Card className="gap-0 sm:gap-0 md:gap-0">
+            <CardHeader className="flex flex-row items-center justify-between border-b border-stone-100 pb-3 dark:border-stone-800">
+              <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                <Gift className="size-4 text-stone-400" />
+                Part of these combos
+              </CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                asChild
+                className="-mr-2 text-xs text-stone-500"
+              >
+                <Link
+                  to={ROUTES.PRIVATE.COMBOS.CREATE}
+                  state={
+                    {
+                      product: toComboProduct(item),
+                    } satisfies TCreateComboState
+                  }
+                >
+                  <Plus />
+                  New combo with this product
+                </Link>
+              </Button>
+            </CardHeader>
+            <CardContent className="px-0 sm:px-0 md:px-0">
+              {item.combos.length === 0 ? (
+                <p className="px-3 py-4 text-sm text-stone-400 sm:px-4 md:px-6 dark:text-stone-500">
+                  Not in any combo yet.
+                </p>
+              ) : (
+                <ul className="divide-y divide-stone-100 dark:divide-stone-800">
+                  {item.combos.map((combo) => {
+                    const quantity =
+                      combo.items.find(
+                        (comboItem) => comboItem.productId === item.id,
+                      )?.quantity ?? 1;
+                    return (
+                      <li key={combo.id}>
+                        <Link
+                          to={ROUTES.PRIVATE.COMBOS.DETAIL(combo.slug)}
+                          className="group flex items-center gap-3 px-3 py-3 transition-colors hover:bg-stone-50 sm:px-4 md:px-6 dark:hover:bg-stone-800/40"
+                        >
+                          <ImageThumb
+                            src={comboImages(combo)[0]}
+                            alt=""
+                            className="size-10"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5">
+                              <p className="truncate text-sm font-medium text-stone-900 group-hover:text-accent-600 dark:text-stone-50 dark:group-hover:text-accent-400">
+                                {combo.name}
+                              </p>
+                              {isComboHidden(combo) && (
+                                <Badge variant="secondary" className="shrink-0">
+                                  Hidden
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="mt-0.5 text-xs text-stone-400 dark:text-stone-500">
+                              {quantity > 1
+                                ? `${quantity} × this product · `
+                                : ''}
+                              {combo.itemCount} items in total
+                            </p>
+                          </div>
+                          <span className="shrink-0 text-sm font-medium tabular-nums text-stone-900 dark:text-stone-50">
+                            {formatPrice(combo.price)}
+                          </span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+              {item.combos.length > 0 && (
+                <Link
+                  to={`${ROUTES.PRIVATE.COMBOS.ROOT}?productId=${item.id}`}
+                  className="block border-t border-stone-100 px-3 py-2.5 text-xs font-medium text-stone-500 transition-colors hover:text-stone-900 sm:px-4 md:px-6 dark:border-stone-800 dark:text-stone-400 dark:hover:text-stone-50"
+                >
+                  View all combos with this product
+                </Link>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
 
@@ -405,14 +510,27 @@ const ProductDetailPage = () => {
         isPending={deleteProduct.isPending}
         onConfirm={handleDelete}
         description={
-          <p>
-            This permanently deletes{' '}
-            <span className="font-medium text-stone-900 dark:text-stone-50">
-              {item.name}
-            </span>{' '}
-            and all {item.testimonialCount} of its testimonials. This cannot be
-            undone.
-          </p>
+          <div className="flex flex-col gap-3">
+            <p>
+              This permanently deletes{' '}
+              <span className="font-medium text-stone-900 dark:text-stone-50">
+                {item.name}
+              </span>{' '}
+              and all {item.testimonialCount} of its testimonials. This cannot
+              be undone.
+            </p>
+            {item.combos.length > 0 && (
+              <Callout variant="warning">
+                It's part of {item.combos.length}
+                {item.combos.length >= PRODUCT_DETAIL_COMBOS_LIMIT
+                  ? '+'
+                  : ''}{' '}
+                {item.combos.length === 1 ? 'combo' : 'combos'}, so the delete
+                will be refused until you remove it from them. Deactivating it
+                instead hides it and its combos from the storefront.
+              </Callout>
+            )}
+          </div>
         }
       />
     </div>

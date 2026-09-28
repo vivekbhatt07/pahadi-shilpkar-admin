@@ -13,6 +13,7 @@ import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { cn } from '@/lib/utils';
 import {
+  isProductInCombosError,
   useDeleteProduct,
   useProducts,
   useToggleProductFeatured,
@@ -40,6 +41,7 @@ const {
   IS_FEATURED,
   IS_BESTSELLER,
   AVAILABILITY,
+  IS_ACTIVE,
   SORT,
   SEARCH,
 } = PRODUCT_LIST_SEARCH_PARAMS;
@@ -59,6 +61,7 @@ const ProductsPage = () => {
   const isBestseller = parseBoolean(searchParams.get(IS_BESTSELLER));
   const availability =
     (searchParams.get(AVAILABILITY) as ProductAvailability | null) ?? undefined;
+  const isActive = parseBoolean(searchParams.get(IS_ACTIVE));
   const sort = (searchParams.get(SORT) as ProductSort | null) ?? 'newest';
   const search = searchParams.get(SEARCH) ?? '';
   const debouncedSearch = useDebouncedValue(search, 400);
@@ -70,6 +73,7 @@ const ProductsPage = () => {
     isFeatured,
     isBestseller,
     availability,
+    isActive,
     sort,
     search: debouncedSearch || undefined,
     includeInactive: true,
@@ -97,6 +101,7 @@ const ProductsPage = () => {
     isFeatured !== undefined ||
     isBestseller !== undefined ||
     Boolean(availability) ||
+    isActive !== undefined ||
     search.length > 0;
 
   const closeDialog = () => setDialog({ type: 'closed' });
@@ -116,7 +121,11 @@ const ProductsPage = () => {
 
   const handleDelete = () => {
     if (dialog.type !== 'delete') return;
-    deleteProduct.mutate(dialog.product.id, { onSuccess: closeDialog });
+    deleteProduct.mutate(dialog.product.id, {
+      onSuccess: closeDialog,
+      // Retrying can't help; close so the toast's "View combos" is clickable.
+      onError: (error) => isProductInCombosError(error) && closeDialog(),
+    });
   };
 
   const dialogProduct = dialog.type === 'closed' ? null : dialog.product;
@@ -142,6 +151,7 @@ const ProductsPage = () => {
         isFeatured={isFeatured}
         isBestseller={isBestseller}
         availability={availability}
+        isActive={isActive}
         sort={sort}
         search={search}
         onCategoryChange={(value) => setFilter(CATEGORY_ID, value)}
@@ -158,6 +168,9 @@ const ProductsPage = () => {
           )
         }
         onAvailabilityChange={(value) => setFilter(AVAILABILITY, value)}
+        onActiveChange={(value) =>
+          setFilter(IS_ACTIVE, value === undefined ? undefined : String(value))
+        }
         onSortChange={(value) =>
           setFilter(SORT, value === 'newest' ? undefined : value)
         }

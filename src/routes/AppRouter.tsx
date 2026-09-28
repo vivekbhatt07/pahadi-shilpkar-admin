@@ -6,6 +6,10 @@ import { Loader } from '@/components/ui/loader';
 import { ROUTES } from '@/constants/routes';
 import { useAuthBootstrap } from '@/hooks/auth';
 import CategoriesPage from '@/pages/private/categories';
+import CombosPage from '@/pages/private/combos';
+import CreateComboPage from '@/pages/private/combos/create';
+import ComboDetailPage from '@/pages/private/combos/detail';
+import EditComboPage from '@/pages/private/combos/edit';
 import DashboardPage from '@/pages/private/dashboard';
 import ProductsPage from '@/pages/private/products';
 import CreateProductPage from '@/pages/private/products/create';
@@ -76,6 +80,19 @@ export const AppRouter = () => {
           <Route
             path={ROUTES.PRIVATE.PRODUCTS.EDIT(':slug')}
             element={<EditProductPage />}
+          />
+          <Route path={ROUTES.PRIVATE.COMBOS.ROOT} element={<CombosPage />} />
+          <Route
+            path={ROUTES.PRIVATE.COMBOS.CREATE}
+            element={<CreateComboPage />}
+          />
+          <Route
+            path={ROUTES.PRIVATE.COMBOS.DETAIL(':slug')}
+            element={<ComboDetailPage />}
+          />
+          <Route
+            path={ROUTES.PRIVATE.COMBOS.EDIT(':slug')}
+            element={<EditComboPage />}
           />
           <Route
             path={ROUTES.PRIVATE.TESTIMONIALS}

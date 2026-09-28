@@ -109,6 +109,7 @@ export const PRODUCT_LIST_SEARCH_PARAMS = {
   IS_FEATURED: 'isFeatured',
   IS_BESTSELLER: 'isBestseller',
   AVAILABILITY: 'availability',
+  IS_ACTIVE: 'isActive',
   SORT: 'sort',
   SEARCH: 'search',
 } as const;

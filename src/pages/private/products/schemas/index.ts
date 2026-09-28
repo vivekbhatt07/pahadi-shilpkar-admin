@@ -38,7 +38,8 @@ const specificationSchema = z.object({
     .max(PRODUCT_LIMITS.SPEC_VALUE_MAX, PRODUCT.SPEC_VALUE_MAX),
 });
 
-const purchaseLinkSchema = z.object({
+/** Shared with the combo form. */
+export const purchaseLinkSchema = z.object({
   platform: z.enum([
     'AMAZON',
     'FLIPKART',
@@ -73,10 +74,7 @@ export const productFormSchema = z
       .string()
       .trim()
       .max(PRODUCT_LIMITS.SLUG_MAX, PRODUCT.SLUG_MAX)
-      .refine(
-        (value) => value === '' || SLUG_REGEX.test(value),
-        SLUG.INVALID,
-      ),
+      .refine((value) => value === '' || SLUG_REGEX.test(value), SLUG.INVALID),
     [PRODUCT_FORM_FIELD_NAMES.SKU]: z
       .string()
       .trim()
@@ -88,10 +86,7 @@ export const productFormSchema = z
     [PRODUCT_FORM_FIELD_NAMES.SHORT_DESCRIPTION]: z
       .string()
       .trim()
-      .max(
-        PRODUCT_LIMITS.SHORT_DESCRIPTION_MAX,
-        PRODUCT.SHORT_DESCRIPTION_MAX,
-      ),
+      .max(PRODUCT_LIMITS.SHORT_DESCRIPTION_MAX, PRODUCT.SHORT_DESCRIPTION_MAX),
     [PRODUCT_FORM_FIELD_NAMES.DESCRIPTION]: z
       .string()
       .trim()
@@ -138,7 +133,9 @@ export const productFormSchema = z
       .array(specificationSchema)
       .max(PRODUCT_LIMITS.SPECIFICATIONS_MAX, PRODUCT.SPECS_MAX),
     [PRODUCT_FORM_FIELD_NAMES.TAGS]: z
-      .array(z.string().trim().min(1).max(PRODUCT_LIMITS.TAG_MAX, PRODUCT.TAG_MAX))
+      .array(
+        z.string().trim().min(1).max(PRODUCT_LIMITS.TAG_MAX, PRODUCT.TAG_MAX),
+      )
       .max(PRODUCT_LIMITS.TAGS_MAX, PRODUCT.TAGS_MAX),
     [PRODUCT_FORM_FIELD_NAMES.STOCK]: z
       .number({ error: PRODUCT.STOCK_REQUIRED })
@@ -156,10 +153,7 @@ export const productFormSchema = z
     [PRODUCT_FORM_FIELD_NAMES.WHATSAPP_MESSAGE]: z
       .string()
       .trim()
-      .max(
-        PRODUCT_LIMITS.WHATSAPP_MESSAGE_MAX,
-        PRODUCT.WHATSAPP_MESSAGE_MAX,
-      ),
+      .max(PRODUCT_LIMITS.WHATSAPP_MESSAGE_MAX, PRODUCT.WHATSAPP_MESSAGE_MAX),
     [PRODUCT_FORM_FIELD_NAMES.PURCHASE_LINKS]: z
       .array(purchaseLinkSchema)
       .max(PRODUCT_LIMITS.PURCHASE_LINKS_MAX, PRODUCT.PURCHASE_LINKS_MAX),

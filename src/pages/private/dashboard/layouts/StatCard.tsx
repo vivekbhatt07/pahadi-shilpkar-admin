@@ -30,6 +30,8 @@ type TStatCardProps = {
   icon: React.ReactNode;
   label: string;
   value: number | undefined;
+  /** Secondary line under the label, e.g. "12 active". */
+  hint?: string;
   tone?: TStatTone;
   isLoading?: boolean;
   to?: string;
@@ -39,6 +41,7 @@ const StatCard = ({
   icon,
   label,
   value,
+  hint,
   tone = 'accent',
   isLoading,
   to,
@@ -73,6 +76,11 @@ const StatCard = ({
         <p className="mt-2 text-xs font-medium text-stone-500 dark:text-stone-400">
           {label}
         </p>
+        {hint && !isLoading && (
+          <p className="mt-0.5 truncate text-[11px] text-stone-400 dark:text-stone-500">
+            {hint}
+          </p>
+        )}
       </div>
     </>
   );

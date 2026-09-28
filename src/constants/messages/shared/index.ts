@@ -30,8 +30,7 @@ export const VALIDATION_MESSAGES = {
     INVALID: 'Please enter a valid URL',
   },
   SLUG: {
-    INVALID:
-      'Slug can only contain lowercase letters, numbers, and hyphens',
+    INVALID: 'Slug can only contain lowercase letters, numbers, and hyphens',
   },
   CATEGORY: {
     NAME_REQUIRED: 'Category name is required',
@@ -55,7 +54,8 @@ export const VALIDATION_MESSAGES = {
     CATEGORY_REQUIRED: 'Please select a category',
     SLUG_MAX: 'Slug must be 120 characters or fewer',
     SKU_MAX: 'SKU must be 50 characters or fewer',
-    SKU_INVALID: 'SKU can only contain letters, numbers, hyphens, and underscores',
+    SKU_INVALID:
+      'SKU can only contain letters, numbers, hyphens, and underscores',
     HIGHLIGHT_MAX: 'Each highlight must be 150 characters or fewer',
     HIGHLIGHTS_MAX: 'You can add up to 10 highlights',
     IMAGES_MAX: 'You can add up to 10 images',
@@ -78,6 +78,17 @@ export const VALIDATION_MESSAGES = {
     PURCHASE_LINKS_MAX: 'You can add up to 10 purchase links',
     META_TITLE_MAX: 'Meta title must be 70 characters or fewer',
     META_DESCRIPTION_MAX: 'Meta description must be 160 characters or fewer',
+  },
+  COMBO: {
+    NAME_REQUIRED: 'Combo name is required',
+    NAME_MAX: 'Combo name must be 100 characters or fewer',
+    ITEMS_REQUIRED: 'Add at least one product',
+    ITEMS_MAX: 'A combo can hold up to 10 products',
+    MIN_UNITS:
+      'A combo needs at least 2 items in total — add another product or raise a quantity',
+    QUANTITY_REQUIRED: 'Quantity is required',
+    QUANTITY_INTEGER: 'Quantity must be a whole number',
+    QUANTITY_RANGE: 'Quantity must be between 1 and 99',
   },
   SETTINGS: {
     WHATSAPP_NUMBER_INVALID: 'Please enter a valid phone number',

@@ -156,6 +156,92 @@ export interface ProductDetail extends Product {
   breadcrumbs: CategoryRef[];
   /** Up to 4 active products from the same category. */
   relatedProducts: Product[];
+  /** Up to 4 combos containing this product (hidden ones included for admins). */
+  combos: Combo[];
+}
+
+/* ── Combos ────────────────────────────────────────────────────── */
+
+/** The slice of a product a combo carries for each of its items. */
+export interface ComboProduct {
+  id: string;
+  name: string;
+  slug: string;
+  price: number;
+  images: string[];
+  availability: ProductAvailability;
+  isActive: boolean;
+}
+
+export interface ComboItem {
+  productId: string;
+  /** 1–99 */
+  quantity: number;
+  product: ComboProduct;
+}
+
+/**
+ * A bundle of existing products sold at one price. Every read-only field is
+ * derived from the items' current product data on each read.
+ */
+export interface Combo {
+  id: string;
+  name: string;
+  slug: string;
+  shortDescription: string | null;
+  description: string | null;
+  /** May be empty — fall back to the items' product images. */
+  images: string[];
+  price: number;
+  /** Read-only: sum of item price × quantity ("worth"). */
+  itemsTotal: number;
+  /** Read-only: itemsTotal − price; null unless the combo is cheaper. */
+  savings: number | null;
+  /** Read-only, derived from itemsTotal; null unless cheaper. */
+  discountPercentage: number | null;
+  /** Read-only: the least available item wins; an inactive product counts as out of stock. */
+  availability: ProductAvailability;
+  /** Read-only: total units across items. */
+  itemCount: number;
+  /** Display order = the order sent on create/update. */
+  items: ComboItem[];
+  isFeatured: boolean;
+  isActive: boolean;
+  /** Per-combo override of the store template. */
+  whatsappMessage: string | null;
+  /** Read-only; {{productUrl}} links to the storefront's /combos/:slug. */
+  whatsappUrl: string | null;
+  purchaseLinks: PurchaseLink[];
+  metaTitle: string | null;
+  metaDescription: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/* ── Dashboard ─────────────────────────────────────────────────── */
+
+/** Only from GET /api/stats */
+export interface DashboardStats {
+  products: {
+    total: number;
+    active: number;
+    featured: number;
+    bestseller: number;
+    /** Every availability key is always present. */
+    byAvailability: Record<ProductAvailability, number>;
+  };
+  categories: { total: number; active: number };
+  combos: {
+    total: number;
+    active: number;
+    /** What the storefront shows — active with every product active. */
+    visible: number;
+    featured: number;
+  };
+  users: { total: number; verified: number; admins: number };
+  /** avgRating is 0 when there are none. */
+  testimonials: { total: number; avgRating: number };
+  whatsappConfigured: boolean;
 }
 
 /* ── Store settings ────────────────────────────────────────────── */
@@ -216,10 +302,7 @@ export interface SignInPayload {
   password: string;
 }
 
-/**
- * TODO(backend): the contract types optional fields as plain strings and does
- * not say how to clear one. The panel sends `null` for a cleared value.
- */
+/** `bio: null` / `avatar: null` clear those fields. */
 export interface UpdateProfilePayload {
   firstName?: string;
   lastName?: string;
@@ -288,6 +371,8 @@ export interface ProductListParams {
   sort?: ProductSort;
   page?: number;
   limit?: number;
+  /** `false` implies includeInactive on the backend. */
+  isActive?: boolean;
   includeInactive?: boolean;
 }
 
@@ -320,6 +405,46 @@ export interface CreateProductPayload {
 }
 
 export interface UpdateProductPayload extends Partial<CreateProductPayload> {
+  isActive?: boolean;
+}
+
+export interface ComboListParams {
+  /** Combos containing this product. */
+  productId?: string;
+  isFeatured?: boolean;
+  /** Matches combo name / descriptions and the names of the products inside. */
+  search?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  sort?: ProductSort;
+  page?: number;
+  limit?: number;
+  isActive?: boolean;
+  includeInactive?: boolean;
+}
+
+export interface ComboItemPayload {
+  productId: string;
+  quantity?: number;
+}
+
+export interface CreateComboPayload {
+  name: string;
+  price: number;
+  items: ComboItemPayload[];
+  slug?: string;
+  shortDescription?: string | null;
+  description?: string | null;
+  images?: string[];
+  isFeatured?: boolean;
+  whatsappMessage?: string | null;
+  purchaseLinks?: PurchaseLink[];
+  metaTitle?: string | null;
+  metaDescription?: string | null;
+}
+
+/** `items`, when sent, replaces the whole list. */
+export interface UpdateComboPayload extends Partial<CreateComboPayload> {
   isActive?: boolean;
 }
 

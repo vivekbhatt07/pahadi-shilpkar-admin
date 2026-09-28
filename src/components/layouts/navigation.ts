@@ -1,5 +1,6 @@
 import {
   FolderTree,
+  Gift,
   LayoutDashboard,
   Lock,
   MessageSquare,
@@ -58,6 +59,12 @@ export const NAV_SECTIONS: TNavSection[] = [
         to: ROUTES.PRIVATE.PRODUCTS.ROOT,
         icon: Package,
         keywords: 'items catalog inventory',
+      },
+      {
+        label: 'Combos',
+        to: ROUTES.PRIVATE.COMBOS.ROOT,
+        icon: Gift,
+        keywords: 'bundles gift sets packs',
       },
     ],
   },
