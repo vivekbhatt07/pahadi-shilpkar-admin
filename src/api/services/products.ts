@@ -27,6 +27,7 @@ const toQuery = (params: ProductListParams) => {
   if (params.sort) query.sort = params.sort;
   if (params.page) query.page = String(params.page);
   if (params.limit) query.limit = String(params.limit);
+  if (params.isActive !== undefined) query.isActive = String(params.isActive);
   if (params.includeInactive) query.includeInactive = 'true';
   return query;
 };
@@ -62,7 +63,10 @@ export const productsService = {
     return data;
   },
 
-  /** Hard delete. Cascades every testimonial on the product. */
+  /**
+   * Hard delete. Cascades every testimonial on the product. 409 while any
+   * combo still contains it.
+   */
   remove: async (id: string) => {
     const { data } = await api.delete<ApiResponse>(`/products/${id}`);
     return data;

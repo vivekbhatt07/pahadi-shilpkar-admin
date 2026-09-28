@@ -4,6 +4,7 @@ import {
   Check,
   CornerDownLeft,
   FolderPlus,
+  Gift,
   Laptop,
   Loader2,
   LogOut,
@@ -113,6 +114,14 @@ const CommandPaletteBody = ({ onClose }: { onClose: () => void }) => {
       icon: Plus,
       keywords: 'add create item',
       perform: go(ROUTES.PRIVATE.PRODUCTS.CREATE),
+    },
+    {
+      id: 'create-combo',
+      group: 'Create',
+      label: 'New combo',
+      icon: Gift,
+      keywords: 'add create bundle gift set pack',
+      perform: go(ROUTES.PRIVATE.COMBOS.CREATE),
     },
     {
       id: 'create-category',

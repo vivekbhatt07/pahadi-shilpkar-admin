@@ -19,8 +19,11 @@ const UNDO_TOAST_DURATION_MS = 12_000;
 export const useUpdateProduct = () => {
   const queryClient = useQueryClient();
 
-  const invalidate = () =>
+  // Combos derive their worth and availability from their products.
+  const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PRODUCTS.ALL });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.COMBOS.ALL });
+  };
 
   const reactivate = async (id: string) => {
     try {

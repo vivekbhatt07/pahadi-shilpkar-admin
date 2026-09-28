@@ -4,9 +4,9 @@ import {
   ChevronRight,
   FolderPlus,
   FolderTree,
+  Gift,
   MessageSquare,
   Package,
-  PackageCheck,
   Plus,
   Star,
   Users,
@@ -31,12 +31,10 @@ import {
   getDisplayName,
   getInitials,
 } from '@/helpers/format';
-import { useCategories } from '@/hooks/categories';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useProducts } from '@/hooks/products';
-import { useSettings } from '@/hooks/settings';
+import { useStats } from '@/hooks/stats';
 import { useAllTestimonials } from '@/hooks/testimonials';
-import { useUsers } from '@/hooks/users';
 import { useAuthStore } from '@/store/authStore';
 
 import StatCard from './layouts/StatCard';
@@ -100,31 +98,26 @@ const PanelHeader = ({
 );
 
 /**
- * There is no stats endpoint. Every number here is a `total` (or array
- * length) derived from a `limit: 1` (or small-limit) list read, reusing the
- * same call for its list where one is shown, to avoid N+1 requests against
+ * Every count comes from one `GET /api/stats` call; the two lists are the
+ * first page of their own endpoints. Three requests in total, well within
  * the 100-req/15-min rate limit.
  */
 const DashboardPage = () => {
   useDocumentTitle('Dashboard');
   const user = useAuthStore((state) => state.user);
-  const categories = useCategories({ includeInactive: true });
-  const totalProducts = useProducts({ includeInactive: true, limit: 1 });
-  const recentProducts = useProducts({ limit: RECENT_LIMIT });
-  const featuredProducts = useProducts({ isFeatured: true, limit: 1 });
-  const customers = useUsers({ limit: 1 });
+  const stats = useStats();
+  const recentProducts = useProducts({
+    includeInactive: true,
+    limit: RECENT_LIMIT,
+  });
   const testimonials = useAllTestimonials({ limit: RECENT_LIMIT });
-  const settings = useSettings();
 
-  const categoryCount = categories.data?.length;
-  const totalProductCount = totalProducts.data?.total;
-  const activeProductCount = recentProducts.data?.total;
-  const featuredProductCount = featuredProducts.data?.total;
-  const customerCount = customers.data?.total;
-  const testimonialCount = testimonials.data?.total;
+  const counts = stats.data;
   const recentItems = recentProducts.data?.items ?? [];
   const latestTestimonials = testimonials.data?.items ?? [];
-  const whatsappConfigured = Boolean(settings.data?.whatsappNumber);
+  const hiddenComboCount = counts
+    ? counts.combos.active - counts.combos.visible
+    : 0;
 
   const greeting = user?.firstName
     ? `${getGreeting()}, ${user.firstName}`
@@ -153,7 +146,7 @@ const DashboardPage = () => {
         }
       />
 
-      {!settings.isPending && !whatsappConfigured && (
+      {counts && !counts.whatsappConfigured && (
         <Callout
           variant="warning"
           size="md"
@@ -171,53 +164,83 @@ const DashboardPage = () => {
         </Callout>
       )}
 
+      {hiddenComboCount > 0 && (
+        <Callout
+          variant="warning"
+          size="md"
+          title={`${hiddenComboCount} active ${
+            hiddenComboCount === 1 ? 'combo is' : 'combos are'
+          } hidden from the storefront`}
+          action={
+            <Button variant="outline" size="sm" asChild>
+              <RouterLink to={`${ROUTES.PRIVATE.COMBOS.ROOT}?isActive=true`}>
+                Review combos
+              </RouterLink>
+            </Button>
+          }
+        >
+          A combo only shows while every product in it is active. Reactivate
+          those products or remove them from the combo.
+        </Callout>
+      )}
+
       <div className="stagger grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-6">
-        <StatCard
-          icon={<FolderTree />}
-          tone="violet"
-          label="Categories"
-          value={categoryCount}
-          isLoading={categories.isPending}
-          to={ROUTES.PRIVATE.CATEGORIES}
-        />
         <StatCard
           icon={<Package />}
           tone="accent"
-          label="Total products"
-          value={totalProductCount}
-          isLoading={totalProducts.isPending}
-          to={ROUTES.PRIVATE.PRODUCTS.ROOT}
-        />
-        <StatCard
-          icon={<PackageCheck />}
-          tone="emerald"
-          label="Active products"
-          value={activeProductCount}
-          isLoading={recentProducts.isPending}
+          label="Products"
+          value={counts?.products.total}
+          hint={counts && `${counts.products.active} active`}
+          isLoading={stats.isPending}
           to={ROUTES.PRIVATE.PRODUCTS.ROOT}
         />
         <StatCard
           icon={<Star />}
           tone="amber"
           label="Featured products"
-          value={featuredProductCount}
-          isLoading={featuredProducts.isPending}
+          value={counts?.products.featured}
+          hint={counts && `${counts.products.bestseller} bestsellers`}
+          isLoading={stats.isPending}
           to={`${ROUTES.PRIVATE.PRODUCTS.ROOT}?isFeatured=true`}
+        />
+        <StatCard
+          icon={<Gift />}
+          tone="emerald"
+          label="Combos"
+          value={counts?.combos.total}
+          hint={counts && `${counts.combos.visible} on the storefront`}
+          isLoading={stats.isPending}
+          to={ROUTES.PRIVATE.COMBOS.ROOT}
+        />
+        <StatCard
+          icon={<FolderTree />}
+          tone="violet"
+          label="Categories"
+          value={counts?.categories.total}
+          hint={counts && `${counts.categories.active} active`}
+          isLoading={stats.isPending}
+          to={ROUTES.PRIVATE.CATEGORIES}
         />
         <StatCard
           icon={<Users />}
           tone="sky"
           label="Customers"
-          value={customerCount}
-          isLoading={customers.isPending}
+          value={counts?.users.total}
+          hint={counts && `${counts.users.verified} verified`}
+          isLoading={stats.isPending}
           to={ROUTES.PRIVATE.CUSTOMERS}
         />
         <StatCard
           icon={<MessageSquare />}
           tone="rose"
           label="Testimonials"
-          value={testimonialCount}
-          isLoading={testimonials.isPending}
+          value={counts?.testimonials.total}
+          hint={
+            counts && counts.testimonials.total > 0
+              ? `${counts.testimonials.avgRating.toFixed(1)} ★ average`
+              : undefined
+          }
+          isLoading={stats.isPending}
           to={ROUTES.PRIVATE.TESTIMONIALS}
         />
       </div>

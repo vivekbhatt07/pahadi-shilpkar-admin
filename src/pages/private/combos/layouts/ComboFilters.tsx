@@ -1,6 +1,5 @@
-import { Search, X } from 'lucide-react';
+import { Package, Search, X } from 'lucide-react';
 
-import CategoryTreePicker from '@/components/custom/CategoryTreePicker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -11,35 +10,26 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import type { ProductAvailability, ProductSort } from '@/types/api';
+import type { ProductSort } from '@/types/api';
 
-import { AVAILABILITY_OPTIONS, FILTER_ALL, SORT_OPTIONS } from '../constants';
+import { FILTER_ALL, SORT_OPTIONS } from '../../products/constants';
 
-type TProductFiltersProps = {
-  categoryId: string | undefined;
+type TComboFiltersProps = {
   isFeatured: boolean | undefined;
-  isBestseller: boolean | undefined;
-  availability: ProductAvailability | undefined;
   isActive: boolean | undefined;
   sort: ProductSort;
   search: string;
-  onCategoryChange: (categoryId: string | undefined) => void;
+  /** Set when the list is scoped to combos containing one product. */
+  productFilterLabel: string | null;
   onFeaturedChange: (isFeatured: boolean | undefined) => void;
-  onBestsellerChange: (isBestseller: boolean | undefined) => void;
-  onAvailabilityChange: (availability: ProductAvailability | undefined) => void;
   onActiveChange: (isActive: boolean | undefined) => void;
   onSortChange: (sort: ProductSort) => void;
   onSearchChange: (search: string) => void;
+  onClearProduct: () => void;
   onClear: () => void;
 };
 
-const FEATURED_OPTIONS = [
-  { value: FILTER_ALL, label: 'Any' },
-  { value: 'true', label: 'Yes' },
-  { value: 'false', label: 'No' },
-] as const;
-
-const BESTSELLER_OPTIONS = [
+const YES_NO_OPTIONS = [
   { value: FILTER_ALL, label: 'Any' },
   { value: 'true', label: 'Yes' },
   { value: 'false', label: 'No' },
@@ -62,33 +52,29 @@ const FilterLabel = ({ children }: { children: React.ReactNode }) => (
 const activeFilterClass =
   'border-accent-300 bg-accent-50/60 text-accent-800 dark:border-accent-800 dark:bg-accent-950/30 dark:text-accent-200';
 
+const toBooleanValue = (value: string) =>
+  value === FILTER_ALL ? undefined : value === 'true';
+
 /** Every filter here (incl. search) is a server-side query param. */
-const ProductFilters = ({
-  categoryId,
+const ComboFilters = ({
   isFeatured,
-  isBestseller,
-  availability,
   isActive,
   sort,
   search,
-  onCategoryChange,
+  productFilterLabel,
   onFeaturedChange,
-  onBestsellerChange,
-  onAvailabilityChange,
   onActiveChange,
   onSortChange,
   onSearchChange,
+  onClearProduct,
   onClear,
-}: TProductFiltersProps) => {
+}: TComboFiltersProps) => {
   const activeFilterCount = [
-    Boolean(categoryId),
     isFeatured !== undefined,
-    isBestseller !== undefined,
-    Boolean(availability),
     isActive !== undefined,
     search.length > 0,
+    productFilterLabel !== null,
   ].filter(Boolean).length;
-  const hasFilters = activeFilterCount > 0;
 
   return (
     <div className="flex flex-col gap-3">
@@ -96,23 +82,13 @@ const ProductFilters = ({
         <div className="flex-1">
           <Input
             type="search"
-            placeholder="Search by name, SKU, or tag…"
+            placeholder="Search by combo or product name…"
             value={search}
             onChange={(event) => onSearchChange(event.target.value)}
             onClear={() => onSearchChange('')}
             startAdornment={
               <Search className="pointer-events-none size-4 text-stone-400" />
             }
-          />
-        </div>
-
-        <div className="sm:w-56">
-          <CategoryTreePicker
-            value={categoryId ?? null}
-            onChange={(id) => onCategoryChange(id ?? undefined)}
-            allowNone
-            noneLabel="All categories"
-            placeholder="All categories"
           />
         </div>
 
@@ -136,9 +112,7 @@ const ProductFilters = ({
       <div className="flex flex-wrap items-center gap-2">
         <Select
           value={isActive === undefined ? FILTER_ALL : String(isActive)}
-          onValueChange={(value) =>
-            onActiveChange(value === FILTER_ALL ? undefined : value === 'true')
-          }
+          onValueChange={(value) => onActiveChange(toBooleanValue(value))}
         >
           <SelectTrigger
             className={cn(
@@ -161,11 +135,7 @@ const ProductFilters = ({
 
         <Select
           value={isFeatured === undefined ? FILTER_ALL : String(isFeatured)}
-          onValueChange={(value) =>
-            onFeaturedChange(
-              value === FILTER_ALL ? undefined : value === 'true',
-            )
-          }
+          onValueChange={(value) => onFeaturedChange(toBooleanValue(value))}
         >
           <SelectTrigger
             className={cn(
@@ -178,7 +148,7 @@ const ProductFilters = ({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {FEATURED_OPTIONS.map((option) => (
+            {YES_NO_OPTIONS.map((option) => (
               <SelectItem key={option.value} value={option.value}>
                 {option.label}
               </SelectItem>
@@ -186,59 +156,29 @@ const ProductFilters = ({
           </SelectContent>
         </Select>
 
-        <Select
-          value={isBestseller === undefined ? FILTER_ALL : String(isBestseller)}
-          onValueChange={(value) =>
-            onBestsellerChange(
-              value === FILTER_ALL ? undefined : value === 'true',
-            )
-          }
-        >
-          <SelectTrigger
+        {productFilterLabel !== null && (
+          <span
             className={cn(
-              'w-auto min-w-36',
-              isBestseller !== undefined && activeFilterClass,
+              'inline-flex h-9 items-center gap-1.5 rounded-lg border pr-1 pl-3 text-sm',
+              activeFilterClass,
             )}
-            aria-label="Filter by bestseller"
           >
-            <FilterLabel>Bestseller</FilterLabel>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {BESTSELLER_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+            <Package className="size-3.5 shrink-0" />
+            <span className="max-w-56 truncate">
+              Contains {productFilterLabel}
+            </span>
+            <button
+              type="button"
+              onClick={onClearProduct}
+              aria-label="Show combos with any product"
+              className="flex size-6 cursor-pointer items-center justify-center rounded-md hover:bg-accent-100 dark:hover:bg-accent-900/40"
+            >
+              <X className="size-3.5" />
+            </button>
+          </span>
+        )}
 
-        <Select
-          value={availability ?? FILTER_ALL}
-          onValueChange={(value) =>
-            onAvailabilityChange(
-              value === FILTER_ALL ? undefined : (value as ProductAvailability),
-            )
-          }
-        >
-          <SelectTrigger
-            className={cn('w-auto min-w-44', availability && activeFilterClass)}
-            aria-label="Filter by availability"
-          >
-            <FilterLabel>Availability</FilterLabel>
-            <SelectValue placeholder="All" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={FILTER_ALL}>All</SelectItem>
-            {AVAILABILITY_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        {hasFilters && (
+        {activeFilterCount > 0 && (
           <Button
             variant="ghost"
             size="sm"
@@ -257,4 +197,4 @@ const ProductFilters = ({
   );
 };
 
-export default ProductFilters;
+export default ComboFilters;

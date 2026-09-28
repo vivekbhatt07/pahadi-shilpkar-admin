@@ -1,5 +1,10 @@
 import { Plus, Trash2 } from 'lucide-react';
-import { Controller, useFieldArray, useFormContext } from 'react-hook-form';
+import {
+  Controller,
+  useFieldArray,
+  useFormContext,
+  useFormState,
+} from 'react-hook-form';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,15 +24,21 @@ import type { TProductFormData } from '../types';
 
 const { PURCHASE_LINKS } = PRODUCT_FORM_FIELD_NAMES;
 
+/** Any form with a `purchaseLinks` array — the product and combo forms. */
+type TPurchaseLinksForm = Pick<TProductFormData, typeof PURCHASE_LINKS>;
+
 type TPurchaseLinksFieldProps = { disabled?: boolean };
 
 const PurchaseLinksField = ({ disabled }: TPurchaseLinksFieldProps) => {
-  const { control, register, formState } = useFormContext<TProductFormData>();
+  const { control, register } = useFormContext<TPurchaseLinksForm>();
   const { fields, append, remove } = useFieldArray({
     control,
     name: PURCHASE_LINKS,
   });
-  const errors = formState.errors.purchaseLinks;
+  // useFormState (not formState from context) so the React Compiler sees
+  // fresh errors after a submit.
+  const errors = useFormState({ control, name: PURCHASE_LINKS }).errors
+    .purchaseLinks;
 
   return (
     <div className="flex flex-col gap-3">

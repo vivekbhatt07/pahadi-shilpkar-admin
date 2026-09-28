@@ -1,5 +1,6 @@
 import type {
   CategoryListParams,
+  ComboListParams,
   CategoryTreeParams,
   ProductListParams,
   TestimonialListParams,
@@ -22,8 +23,15 @@ export const QUERY_KEYS = {
     ALL: ['products'] as const,
     LISTS: ['products', 'list'] as const,
     LIST: (params: ProductListParams) => ['products', 'list', params] as const,
+    DETAILS: ['products', 'detail'] as const,
     DETAIL: (slug: string) => ['products', 'detail', slug] as const,
   },
+  COMBOS: {
+    ALL: ['combos'] as const,
+    LIST: (params: ComboListParams) => ['combos', 'list', params] as const,
+    DETAIL: (slug: string) => ['combos', 'detail', slug] as const,
+  },
+  STATS: ['stats'] as const,
   TESTIMONIALS: {
     ALL: ['testimonials'] as const,
     LIST: (productId: string) => ['testimonials', 'list', productId] as const,

@@ -21,9 +21,11 @@ export const useCountUp = (target: number | undefined, durationMs = 700) => {
     const start = performance.now();
 
     const tick = (now: number) => {
+      // rAF's timestamp can precede `start` slightly; clamp so the first
+      // frame never eases to a negative value (rendered as "-0").
       const progress = reduceMotion
         ? 1
-        : Math.min(1, (now - start) / durationMs);
+        : Math.min(1, Math.max(0, (now - start) / durationMs));
       const value = Math.round(from + (target - from) * easeOutCubic(progress));
       setDisplay(value);
       if (progress < 1) {
