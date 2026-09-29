@@ -14,12 +14,19 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { cn } from '@/lib/utils';
 import {
   isProductInCombosError,
+  useBulkUpdateProducts,
   useDeleteProduct,
+  useDuplicateProduct,
   useProducts,
   useToggleProductFeatured,
   useUpdateProduct,
 } from '@/hooks/products';
-import type { Product, ProductAvailability, ProductSort } from '@/types/api';
+import type {
+  BulkProductChanges,
+  Product,
+  ProductAvailability,
+  ProductSort,
+} from '@/types/api';
 
 import {
   DEACTIVATE_WARNING,
@@ -27,13 +34,20 @@ import {
   PRODUCT_LIST_LIMIT,
   PRODUCT_LIST_SEARCH_PARAMS,
 } from './constants';
+import MoveProductsDialog from './layouts/MoveProductsDialog';
+import ProductBulkActions from './layouts/ProductBulkActions';
 import ProductFilters from './layouts/ProductFilters';
 import ProductsTable from './layouts/ProductsTable';
 
 type TDialogState =
   | { type: 'closed' }
   | { type: 'deactivate'; product: Product }
-  | { type: 'delete'; product: Product };
+  | { type: 'delete'; product: Product }
+  | { type: 'bulk-deactivate' }
+  | { type: 'bulk-move' };
+
+/** Never mutated — the "nothing selected" value. */
+const NO_SELECTION: ReadonlySet<string> = new Set();
 
 const {
   PAGE,
@@ -81,6 +95,19 @@ const ProductsPage = () => {
   const toggleFeatured = useToggleProductFeatured();
   const updateProduct = useUpdateProduct();
   const deleteProduct = useDeleteProduct();
+  const duplicateProduct = useDuplicateProduct();
+  const bulkUpdate = useBulkUpdateProducts();
+
+  // A selection belongs to one view of the list (page + filters), so any
+  // navigation starts from nothing selected without an effect to reset it.
+  const listKey = searchParams.toString();
+  const [selection, setSelection] = useState<{
+    key: string;
+    ids: ReadonlySet<string>;
+  }>({ key: listKey, ids: NO_SELECTION });
+  const selectedIds = selection.key === listKey ? selection.ids : NO_SELECTION;
+  const setSelectedIds = (ids: ReadonlySet<string>) =>
+    setSelection({ key: listKey, ids });
 
   const updateParams = (patch: Record<string, string | undefined>) => {
     const next = new URLSearchParams(searchParams);
@@ -105,7 +132,34 @@ const ProductsPage = () => {
     search.length > 0;
 
   const closeDialog = () => setDialog({ type: 'closed' });
-  const isMutating = updateProduct.isPending || deleteProduct.isPending;
+  const isMutating =
+    updateProduct.isPending ||
+    deleteProduct.isPending ||
+    duplicateProduct.isPending ||
+    bulkUpdate.isPending;
+
+  // Rows can drop out of the page after a refetch; only act on visible ones.
+  const selectedProducts = items.filter((product) =>
+    selectedIds.has(product.id),
+  );
+
+  const toggleSelected = (product: Product, selected: boolean) => {
+    const next = new Set(selectedIds);
+    if (selected) next.add(product.id);
+    else next.delete(product.id);
+    setSelectedIds(next);
+  };
+
+  const applyBulk = (changes: BulkProductChanges) =>
+    bulkUpdate.mutate(
+      { ids: selectedProducts.map((product) => product.id), ...changes },
+      {
+        onSuccess: () => {
+          setSelectedIds(NO_SELECTION);
+          closeDialog();
+        },
+      },
+    );
 
   const handleActivate = (product: Product) => {
     updateProduct.mutate({ id: product.id, payload: { isActive: true } });
@@ -128,7 +182,10 @@ const ProductsPage = () => {
     });
   };
 
-  const dialogProduct = dialog.type === 'closed' ? null : dialog.product;
+  const dialogProduct =
+    dialog.type === 'deactivate' || dialog.type === 'delete'
+      ? dialog.product
+      : null;
 
   return (
     <div className="flex w-full flex-col gap-6">
@@ -188,9 +245,28 @@ const ProductsPage = () => {
             products.isPlaceholderData && 'pointer-events-none opacity-60',
           )}
         >
+          {selectedProducts.length > 0 && (
+            <ProductBulkActions
+              count={selectedProducts.length}
+              isPending={bulkUpdate.isPending}
+              onApply={applyBulk}
+              onDeactivate={() => setDialog({ type: 'bulk-deactivate' })}
+              onMove={() => setDialog({ type: 'bulk-move' })}
+              onClear={() => setSelectedIds(NO_SELECTION)}
+            />
+          )}
           <ProductsTable
             products={items}
             isBusy={isMutating}
+            selectedIds={selectedIds}
+            onToggleSelected={toggleSelected}
+            onToggleAll={(selected) =>
+              setSelectedIds(
+                selected
+                  ? new Set(items.map((product) => product.id))
+                  : NO_SELECTION,
+              )
+            }
             onToggleFeatured={(product, value) =>
               toggleFeatured.mutate({ id: product.id, isFeatured: value })
             }
@@ -198,6 +274,7 @@ const ProductsPage = () => {
             onDeactivate={(product) =>
               setDialog({ type: 'deactivate', product })
             }
+            onDuplicate={(product) => duplicateProduct.mutate(product.id)}
             onDelete={(product) => setDialog({ type: 'delete', product })}
           />
           <TablePagination
@@ -283,6 +360,37 @@ const ProductsPage = () => {
             and all of its testimonials. This cannot be undone.
           </p>
         }
+      />
+
+      <ConfirmDialog
+        open={dialog.type === 'bulk-deactivate'}
+        onOpenChange={(open) => !open && closeDialog()}
+        title={`Deactivate ${selectedProducts.length} ${
+          selectedProducts.length === 1 ? 'product' : 'products'
+        }?`}
+        variant="destructive"
+        confirmLabel="Deactivate"
+        isPending={bulkUpdate.isPending}
+        onConfirm={() => applyBulk({ isActive: false })}
+        description={
+          <div className="flex flex-col gap-2">
+            <p>
+              They will disappear from the storefront, along with any combos
+              that include them.
+            </p>
+            <p className="text-stone-600 dark:text-stone-400">
+              {DEACTIVATE_WARNING}
+            </p>
+          </div>
+        }
+      />
+
+      <MoveProductsDialog
+        open={dialog.type === 'bulk-move'}
+        onOpenChange={(open) => !open && closeDialog()}
+        count={selectedProducts.length}
+        isPending={bulkUpdate.isPending}
+        onConfirm={(categoryId) => applyBulk({ categoryId })}
       />
     </div>
   );

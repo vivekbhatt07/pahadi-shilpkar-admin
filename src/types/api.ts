@@ -244,6 +244,51 @@ export interface DashboardStats {
   whatsappConfigured: boolean;
 }
 
+export interface BuyClickCounts {
+  clicks: number;
+  whatsapp: number;
+  marketplace: number;
+}
+
+/**
+ * Only from GET /api/stats/buy-clicks — storefront buy-button clicks over the
+ * last `days` days. Orders happen off-site, so this is the demand signal.
+ */
+export interface BuyClickStats {
+  days: number;
+  total: number;
+  byChannel: { WHATSAPP: number; MARKETPLACE: number };
+  /** Marketplace clicks, most clicked first. */
+  byPlatform: { platform: PurchaseLinkPlatform; clicks: number }[];
+  /** Top 5 each. */
+  topProducts: (BuyClickCounts & {
+    product: { id: string; name: string; slug: string; images: string[] };
+  })[];
+  topCombos: (BuyClickCounts & {
+    combo: { id: string; name: string; slug: string; images: string[] };
+  })[];
+}
+
+/** Only from GET /api/stats/stock-alerts — products shoppers are waiting on. */
+export interface StockAlertStats {
+  /** Shoppers waiting, across all products. */
+  total: number;
+  /** Up to 20, most wanted first. */
+  products: {
+    product: {
+      id: string;
+      name: string;
+      slug: string;
+      images: string[];
+      availability: ProductAvailability;
+      isActive: boolean;
+    };
+    waiting: number;
+    /** When the longest-waiting shopper asked. */
+    since: string;
+  }[];
+}
+
 /* ── Store settings ────────────────────────────────────────────── */
 
 export interface StoreSettings {
@@ -406,6 +451,19 @@ export interface CreateProductPayload {
 
 export interface UpdateProductPayload extends Partial<CreateProductPayload> {
   isActive?: boolean;
+}
+
+/** The fields one bulk request can set; send at least one. */
+export type BulkProductChanges = Partial<
+  Pick<
+    UpdateProductPayload,
+    'isActive' | 'isFeatured' | 'isBestseller' | 'availability' | 'categoryId'
+  >
+>;
+
+/** 1–100 ids; all or nothing — an unknown id fails the whole request. */
+export interface BulkUpdateProductsPayload extends BulkProductChanges {
+  ids: string[];
 }
 
 export interface ComboListParams {

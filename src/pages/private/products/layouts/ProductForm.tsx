@@ -706,7 +706,8 @@ const ProductForm = ({
                       </Select>
                       <FormDescription>
                         Independent of stock — set this to what buyers should
-                        see.
+                        see. Saving as In stock or Made to order emails anyone
+                        waiting on a “Notify me” alert.
                       </FormDescription>
                       <FormMessage />
                     </FormItem>

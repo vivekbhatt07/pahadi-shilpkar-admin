@@ -32,6 +32,13 @@ export const QUERY_KEYS = {
     DETAIL: (slug: string) => ['combos', 'detail', slug] as const,
   },
   STATS: ['stats'] as const,
+  /**
+   * Under STATS on purpose: every mutation invalidates STATS, and a product
+   * save can email waiting shoppers and clear their alerts.
+   */
+  STOCK_ALERT_STATS: ['stats', 'stock-alerts'] as const,
+  /** Deliberately not under STATS — admin writes never change storefront clicks. */
+  BUY_CLICK_STATS: (days: number) => ['buy-click-stats', days] as const,
   TESTIMONIALS: {
     ALL: ['testimonials'] as const,
     LIST: (productId: string) => ['testimonials', 'list', productId] as const,

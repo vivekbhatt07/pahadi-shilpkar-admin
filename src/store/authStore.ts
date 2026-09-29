@@ -11,6 +11,8 @@ interface AuthState {
   // Actions
   setAuth: (user: User, token: string) => void;
   setUser: (user: User) => void;
+  /** Swap in a fresh token — a password change revokes the old one. */
+  setToken: (token: string) => void;
   logout: () => void;
 }
 
@@ -29,7 +31,12 @@ export const useAuthStore = create<AuthState>()(
         set({ user });
       },
 
-      // There is no logout endpoint; dropping the token is the logout.
+      setToken: (token) => {
+        set({ token });
+      },
+
+      // Dropping the token is the logout on this device; signing out
+      // everywhere is POST /auth/sign-out-all followed by this.
       logout: () => {
         set({ user: null, token: null, isAuthenticated: false });
       },

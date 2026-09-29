@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   Boxes,
   ChevronRight,
+  Copy,
   ExternalLink,
   FolderTree,
   Gift,
@@ -30,6 +31,7 @@ import { formatDateTime, formatPrice } from '@/helpers/format';
 import {
   isProductInCombosError,
   useDeleteProduct,
+  useDuplicateProduct,
   useProduct,
 } from '@/hooks/products';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -87,6 +89,7 @@ const ProductDetailPage = () => {
   const navigate = useNavigate();
   const product = useProduct(slug);
   const deleteProduct = useDeleteProduct();
+  const duplicateProduct = useDuplicateProduct();
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   useDocumentTitle(product.data?.name ?? 'Product');
 
@@ -198,6 +201,14 @@ const ProductDetailPage = () => {
               <Pencil />
               Edit
             </Link>
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => duplicateProduct.mutate(item.id)}
+            disabled={duplicateProduct.isPending}
+          >
+            <Copy />
+            Duplicate
           </Button>
           <Button
             variant="outline"

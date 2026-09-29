@@ -1,6 +1,8 @@
 # link-vault-admin
 
-Admin panel for the **Pahadi Shilpkar** storefront: categories, products, testimonial moderation, and the admin's own account.
+Admin panel for the **Pahadi Shilpkar** storefront: categories, products (with bulk actions and duplicate), combos, testimonial moderation, customers, store settings, and the admin's own account.
+
+The dashboard shows catalog counts plus two demand signals from the storefront: **buying interest** (clicks on "Order on WhatsApp" and marketplace links, `GET /api/stats/buy-clicks`) and **waiting for restock** (products shoppers asked to be emailed about, `GET /api/stats/stock-alerts`). Saving a product as In stock or Made to order emails everyone waiting on it.
 
 ## Setup
 
@@ -19,7 +21,7 @@ Optional: set `VITE_CLOUDINARY_CLOUD_NAME` and `VITE_CLOUDINARY_UPLOAD_PRESET` t
 ```
 src/
   api/            axios client + central 401/403/429 + validation-error parsing
-  api/services/   one module per backend resource (auth, categories, products, testimonials)
+  api/services/   one module per backend resource (auth, categories, combos, products, settings, stats, testimonials, upload, users)
   hooks/          TanStack Query hooks per resource (queries, mutations, optimistic toggles)
   types/api.ts    backend contract types (mirrors the API exactly)
   helpers/        form error mapping, formatting, optional image upload
