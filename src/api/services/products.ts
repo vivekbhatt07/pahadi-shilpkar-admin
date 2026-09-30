@@ -1,6 +1,7 @@
 import api from '@/api';
 import type {
   ApiResponse,
+  BulkUpdateProductsPayload,
   CreateProductPayload,
   Paginated,
   Product,
@@ -59,6 +60,30 @@ export const productsService = {
     const { data } = await api.patch<ApiResponse<Product>>(
       `/products/${id}`,
       payload,
+    );
+    return data;
+  },
+
+  /**
+   * The same change on up to 100 products in one request. All or nothing:
+   * an unknown product or category id (404) changes nothing. Making products
+   * orderable emails the shoppers waiting on them.
+   */
+  bulkUpdate: async (payload: BulkUpdateProductsPayload) => {
+    const { data } = await api.patch<ApiResponse<{ updated: number }>>(
+      '/products/bulk',
+      payload,
+    );
+    return data;
+  },
+
+  /**
+   * A copy to edit into a similar product: "<name> (Copy)", fresh slug,
+   * inactive, not featured / bestseller, no SKU, stock 0.
+   */
+  duplicate: async (id: string) => {
+    const { data } = await api.post<ApiResponse<Product>>(
+      `/products/${id}/duplicate`,
     );
     return data;
   },

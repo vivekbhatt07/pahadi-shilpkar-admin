@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { KeyRound, Loader2 } from 'lucide-react';
+import { KeyRound, Loader2, LogOut } from 'lucide-react';
 
+import ConfirmDialog from '@/components/dialogs/confirm-dialog';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -14,7 +16,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { applyApiFieldErrors } from '@/helpers/form';
-import { useChangePassword } from '@/hooks/auth';
+import { useChangePassword, useSignOutAll } from '@/hooks/auth';
 
 import SettingsSection from '../components/SettingsSection';
 import PasswordChecklist from './components/PasswordChecklist';
@@ -29,6 +31,8 @@ const SecurityPage = () => {
   const { CURRENT_PASSWORD, NEW_PASSWORD, CONFIRM_NEW_PASSWORD } =
     SECURITY_FORM_FIELD_NAMES;
   const changePassword = useChangePassword();
+  const signOutAll = useSignOutAll();
+  const [isSignOutOpen, setIsSignOutOpen] = useState(false);
 
   const form = useForm<TSecurityFormData>({
     resolver: zodResolver(securityFormSchema),
@@ -70,7 +74,7 @@ const SecurityPage = () => {
       <SettingsSection
         icon={<KeyRound />}
         title="Change password"
-        description="Your session stays signed in after changing the password."
+        description="This session stays signed in; any other devices are signed out."
       >
         <Form {...form}>
           <form
@@ -158,6 +162,33 @@ const SecurityPage = () => {
           </form>
         </Form>
       </SettingsSection>
+
+      <SettingsSection
+        icon={<LogOut />}
+        title="Sign out of all devices"
+        description="Signed in on a shared or lost device? This ends every session for your account, including this one."
+      >
+        <div>
+          <Button variant="outline" onClick={() => setIsSignOutOpen(true)}>
+            <LogOut />
+            Sign out everywhere
+          </Button>
+        </div>
+      </SettingsSection>
+
+      <ConfirmDialog
+        open={isSignOutOpen}
+        onOpenChange={setIsSignOutOpen}
+        title="Sign out of all devices?"
+        description="Every device signed in to your account, this one included, will need to sign in again."
+        confirmLabel="Sign out everywhere"
+        isPending={signOutAll.isPending}
+        onConfirm={() =>
+          signOutAll.mutate(undefined, {
+            onError: () => setIsSignOutOpen(false),
+          })
+        }
+      />
     </div>
   );
 };

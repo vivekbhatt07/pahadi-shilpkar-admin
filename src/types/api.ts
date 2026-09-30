@@ -142,6 +142,9 @@ export interface Product {
   purchaseLinks: PurchaseLink[];
   metaTitle: string | null;
   metaDescription: string | null;
+  /** Read-only; 0 when there are no testimonials. On every product response. */
+  avgRating: number;
+  testimonialCount: number;
   categoryId: string;
   category: Category;
   createdAt: string;
@@ -150,8 +153,6 @@ export interface Product {
 
 /** Only from GET /api/products/:slug */
 export interface ProductDetail extends Product {
-  avgRating: number;
-  testimonialCount: number;
   /** Root → the product's category. */
   breadcrumbs: CategoryRef[];
   /** Up to 4 active products from the same category. */
@@ -241,7 +242,64 @@ export interface DashboardStats {
   users: { total: number; verified: number; admins: number };
   /** avgRating is 0 when there are none. */
   testimonials: { total: number; avgRating: number };
+  /** `new` = status NEW, not looked at yet. */
+  inquiries: { total: number; new: number };
   whatsappConfigured: boolean;
+}
+
+export interface BuyClickCounts {
+  clicks: number;
+  whatsapp: number;
+  marketplace: number;
+}
+
+export interface DailyBuyClicks {
+  /** An India-time calendar date, "2026-09-29". */
+  date: string;
+  whatsapp: number;
+  marketplace: number;
+}
+
+/**
+ * Only from GET /api/stats/buy-clicks — storefront buy-button clicks over the
+ * last `days` days. Orders happen off-site, so this is the demand signal.
+ */
+export interface BuyClickStats {
+  /** The last `days` India-time calendar days, today included. */
+  days: number;
+  total: number;
+  byChannel: { WHATSAPP: number; MARKETPLACE: number };
+  /** One entry per day, oldest first, quiet days included — sums to the totals. */
+  daily: DailyBuyClicks[];
+  /** Marketplace clicks, most clicked first. */
+  byPlatform: { platform: PurchaseLinkPlatform; clicks: number }[];
+  /** Top 5 each. */
+  topProducts: (BuyClickCounts & {
+    product: { id: string; name: string; slug: string; images: string[] };
+  })[];
+  topCombos: (BuyClickCounts & {
+    combo: { id: string; name: string; slug: string; images: string[] };
+  })[];
+}
+
+/** Only from GET /api/stats/stock-alerts — products shoppers are waiting on. */
+export interface StockAlertStats {
+  /** Shoppers waiting, across all products. */
+  total: number;
+  /** Up to 20, most wanted first. */
+  products: {
+    product: {
+      id: string;
+      name: string;
+      slug: string;
+      images: string[];
+      availability: ProductAvailability;
+      isActive: boolean;
+    };
+    waiting: number;
+    /** When the longest-waiting shopper asked. */
+    since: string;
+  }[];
 }
 
 /* ── Store settings ────────────────────────────────────────────── */
@@ -284,6 +342,66 @@ export interface TestimonialWithProduct extends Testimonial {
 }
 
 export interface TestimonialListParams {
+  page?: number;
+  limit?: number;
+}
+
+/* ── Banners ───────────────────────────────────────────────────── */
+
+/** A homepage slide. The storefront shows only live ones, in sortOrder. */
+export interface Banner {
+  id: string;
+  title: string;
+  subtitle: string | null;
+  /** Wide image; also used on phones unless mobileImage is set. */
+  image: string;
+  mobileImage: string | null;
+  /** Set only together with ctaUrl. */
+  ctaLabel: string | null;
+  /** A storefront path ("/products?tag=diwali") or an http(s) URL. */
+  ctaUrl: string | null;
+  isActive: boolean;
+  sortOrder: number;
+  /** Null = no start / no end. */
+  startsAt: string | null;
+  endsAt: string | null;
+  /** Read-only: active and inside its schedule right now. */
+  isLive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/* ── Inquiries ─────────────────────────────────────────────────── */
+
+export type InquiryType = 'CUSTOM_ORDER' | 'BULK_ORDER' | 'GENERAL';
+
+export type InquiryStatus = 'NEW' | 'IN_PROGRESS' | 'CLOSED';
+
+/** A message from the storefront contact form. */
+export interface Inquiry {
+  id: string;
+  type: InquiryType;
+  name: string;
+  email: string;
+  phone: string | null;
+  message: string;
+  quantity: number | null;
+  status: InquiryStatus;
+  /** Private to admins. */
+  adminNote: string | null;
+  productId: string | null;
+  /** Null when none was picked or the product was deleted since. */
+  product: { id: string; name: string; slug: string; images: string[] } | null;
+  /** Set when the sender was signed in. */
+  userId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Newest first. */
+export interface InquiryListParams {
+  status?: InquiryStatus;
+  type?: InquiryType;
   page?: number;
   limit?: number;
 }
@@ -408,6 +526,19 @@ export interface UpdateProductPayload extends Partial<CreateProductPayload> {
   isActive?: boolean;
 }
 
+/** The fields one bulk request can set; send at least one. */
+export type BulkProductChanges = Partial<
+  Pick<
+    UpdateProductPayload,
+    'isActive' | 'isFeatured' | 'isBestseller' | 'availability' | 'categoryId'
+  >
+>;
+
+/** 1–100 ids; all or nothing — an unknown id fails the whole request. */
+export interface BulkUpdateProductsPayload extends BulkProductChanges {
+  ids: string[];
+}
+
 export interface ComboListParams {
   /** Combos containing this product. */
   productId?: string;
@@ -456,6 +587,38 @@ export interface UpdateSettingsPayload {
   instagramUrl?: string | null;
   facebookUrl?: string | null;
   youtubeUrl?: string | null;
+}
+
+export interface BannerListParams {
+  /** Admin only — also inactive, scheduled and ended banners. */
+  includeInactive?: boolean;
+}
+
+/** Dates are ISO strings; a label needs a link, and endsAt must be after startsAt. */
+export interface CreateBannerPayload {
+  title: string;
+  image: string;
+  subtitle?: string | null;
+  mobileImage?: string | null;
+  ctaLabel?: string | null;
+  ctaUrl?: string | null;
+  isActive?: boolean;
+  /** Defaults to 0 — ties go to the newest banner. */
+  sortOrder?: number;
+  startsAt?: string | null;
+  endsAt?: string | null;
+}
+
+export type UpdateBannerPayload = Partial<CreateBannerPayload>;
+
+export interface ReorderBannersPayload {
+  items: { id: string; sortOrder: number }[];
+}
+
+/** Send at least one field; `adminNote: null` clears the note. */
+export interface UpdateInquiryPayload {
+  status?: InquiryStatus;
+  adminNote?: string | null;
 }
 
 export interface UserListParams {
