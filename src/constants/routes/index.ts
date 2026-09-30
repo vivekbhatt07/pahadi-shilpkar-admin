@@ -14,6 +14,8 @@ export const ROUTES = {
       DETAIL: (slug: string) => `/combos/${slug}`,
       EDIT: (slug: string) => `/combos/${slug}/edit`,
     },
+    BANNERS: '/banners',
+    INQUIRIES: '/inquiries',
     TESTIMONIALS: '/testimonials',
     CUSTOMERS: '/customers',
     SETTINGS: {

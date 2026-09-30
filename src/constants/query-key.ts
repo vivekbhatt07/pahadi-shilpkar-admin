@@ -1,7 +1,9 @@
 import type {
+  BannerListParams,
   CategoryListParams,
   ComboListParams,
   CategoryTreeParams,
+  InquiryListParams,
   ProductListParams,
   TestimonialListParams,
   UserListParams,
@@ -47,6 +49,15 @@ export const QUERY_KEYS = {
   },
   SETTINGS: {
     GET: ['settings'] as const,
+  },
+  BANNERS: {
+    ALL: ['banners'] as const,
+    LIST: (params: BannerListParams = {}) =>
+      ['banners', 'list', params] as const,
+  },
+  INQUIRIES: {
+    ALL: ['inquiries'] as const,
+    LIST: (params: InquiryListParams) => ['inquiries', 'list', params] as const,
   },
   USERS: {
     ALL: ['users'] as const,

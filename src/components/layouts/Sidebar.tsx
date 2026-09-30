@@ -11,6 +11,7 @@ import {
 import BrandMark from '@/components/custom/BrandMark';
 import { SimpleTooltip } from '@/components/ui/tooltip';
 import { ROUTES } from '@/constants/routes';
+import { useStats } from '@/hooks/stats';
 import { cn } from '@/lib/utils';
 import { useSidebarStore } from '@/store/sidebarStore';
 
@@ -36,6 +37,32 @@ const ActiveMarker = ({ isActive }: { isActive: boolean }) => (
   />
 );
 
+/** How many inquiries nobody has opened yet; a dot while collapsed. */
+const NewInquiriesBadge = ({ isCollapsed }: { isCollapsed: boolean }) => {
+  const { data } = useStats();
+  const count = data?.inquiries.new ?? 0;
+  if (count === 0) return null;
+
+  return (
+    <>
+      <span className="sr-only">, {count} new</span>
+      {isCollapsed ? (
+        <span
+          aria-hidden
+          className="absolute top-1.5 right-3 size-2 rounded-full bg-accent-500 ring-2 ring-white dark:bg-accent-400 dark:ring-stone-950"
+        />
+      ) : (
+        <span
+          aria-hidden
+          className="ml-auto min-w-5 rounded-full bg-accent-600 px-1.5 text-center text-[11px] leading-4.5 font-semibold text-white tabular-nums dark:bg-accent-500"
+        >
+          {count > 99 ? '99+' : count}
+        </span>
+      )}
+    </>
+  );
+};
+
 type TSidebarLinkProps = {
   item: TNavItem;
   isCollapsed: boolean;
@@ -60,7 +87,6 @@ const SidebarLink = ({ item, isCollapsed, onNavigate }: TSidebarLinkProps) => {
         to={item.to}
         end={item.end}
         onClick={onNavigate}
-        aria-label={isCollapsed ? item.label : undefined}
         className={cn(
           itemBaseClass,
           'h-9',
@@ -78,7 +104,13 @@ const SidebarLink = ({ item, isCollapsed, onNavigate }: TSidebarLinkProps) => {
               : 'text-stone-400 group-hover/nav:text-stone-600 dark:text-stone-500 dark:group-hover/nav:text-stone-300',
           )}
         />
-        {!isCollapsed && <span className="truncate">{item.label}</span>}
+        {/* Kept for screen readers while collapsed, so a badge's count joins the name */}
+        <span className={isCollapsed ? 'sr-only' : 'truncate'}>
+          {item.label}
+        </span>
+        {item.badge === 'newInquiries' && (
+          <NewInquiriesBadge isCollapsed={isCollapsed} />
+        )}
       </NavLink>
     </SimpleTooltip>
   );

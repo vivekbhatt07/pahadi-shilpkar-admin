@@ -95,4 +95,19 @@ export const VALIDATION_MESSAGES = {
     TEMPLATE_MAX: 'Message template must be 500 characters or fewer',
     CONTACT_PHONE_MAX: 'Phone number must be 20 characters or fewer',
   },
+  BANNER: {
+    TITLE_REQUIRED: 'Title is required',
+    TITLE_MAX: 'Title must be 80 characters or fewer',
+    SUBTITLE_MAX: 'Subtitle must be 200 characters or fewer',
+    IMAGE_REQUIRED: 'Add an image',
+    CTA_LABEL_MAX: 'Button label must be 30 characters or fewer',
+    CTA_URL_MAX: 'Link must be 500 characters or fewer',
+    CTA_URL_INVALID:
+      'Use a storefront path like /products or a full http(s) link',
+    CTA_URL_REQUIRED: 'A button label needs a link',
+    SCHEDULE_INVALID: 'The end must be after the start',
+  },
+  INQUIRY: {
+    NOTE_MAX: 'Note must be 1000 characters or fewer',
+  },
 };

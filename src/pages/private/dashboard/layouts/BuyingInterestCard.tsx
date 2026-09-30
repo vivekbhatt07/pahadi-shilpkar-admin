@@ -13,6 +13,8 @@ import { cn } from '@/lib/utils';
 import type { BuyClickCounts, BuyClickStats } from '@/types/api';
 
 import { PURCHASE_LINK_PLATFORM_OPTIONS } from '../../products/constants';
+import { CHANNEL_SWATCHES } from '../constants';
+import DailyClicksChart from './DailyClicksChart';
 
 const WINDOWS = [7, 30, 90] as const;
 type TWindow = (typeof WINDOWS)[number];
@@ -53,6 +55,27 @@ const toTopRows = (stats: BuyClickStats): TTopRow[] =>
   ]
     .sort((a, b) => b.clicks - a.clicks)
     .slice(0, TOP_LIMIT);
+
+/** A channel's total, doubling as the chart's legend entry. */
+const ChannelCount = ({
+  swatch,
+  label,
+  value,
+}: {
+  swatch: string;
+  label: string;
+  value: number;
+}) => (
+  <div>
+    <dt className="flex items-center justify-end gap-1.5 text-stone-500 dark:text-stone-400">
+      <span aria-hidden className={cn('size-2.5 rounded-[3px]', swatch)} />
+      {label}
+    </dt>
+    <dd className="mt-0.5 font-semibold text-stone-900 dark:text-stone-50">
+      {value.toLocaleString('en-IN')}
+    </dd>
+  </div>
+);
 
 const WindowPicker = ({
   value,
@@ -114,8 +137,8 @@ const BuyingInterestCard = () => {
         {stats.isPending ? (
           <div className="flex flex-col gap-3">
             <Skeleton className="h-8 w-20" />
-            <Skeleton className="h-2 w-full rounded-full" />
-            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-3 w-40" />
+            <Skeleton className="mt-2 h-32 w-full" />
           </div>
         ) : stats.isError || !data ? (
           <p className="py-6 text-center text-sm text-stone-500 dark:text-stone-400">
@@ -133,7 +156,7 @@ const BuyingInterestCard = () => {
             <div className="flex flex-col gap-3">
               <div className="flex items-end justify-between gap-4">
                 <div>
-                  <p className="text-3xl leading-none font-semibold tracking-tight text-stone-900 tabular-nums dark:text-stone-50">
+                  <p className="text-3xl leading-none font-semibold tracking-tight text-stone-900 dark:text-stone-50">
                     {data.total.toLocaleString('en-IN')}
                   </p>
                   <p className="mt-1.5 text-xs text-stone-500 dark:text-stone-400">
@@ -141,37 +164,17 @@ const BuyingInterestCard = () => {
                   </p>
                 </div>
                 <dl className="flex gap-4 text-right text-xs">
-                  <div>
-                    <dt className="text-stone-500 dark:text-stone-400">
-                      WhatsApp
-                    </dt>
-                    <dd className="font-semibold text-emerald-600 tabular-nums dark:text-emerald-400">
-                      {data.byChannel.WHATSAPP.toLocaleString('en-IN')}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-stone-500 dark:text-stone-400">
-                      Marketplaces
-                    </dt>
-                    <dd className="font-semibold text-sky-600 tabular-nums dark:text-sky-400">
-                      {data.byChannel.MARKETPLACE.toLocaleString('en-IN')}
-                    </dd>
-                  </div>
+                  <ChannelCount
+                    swatch={CHANNEL_SWATCHES.WHATSAPP}
+                    label="WhatsApp"
+                    value={data.byChannel.WHATSAPP}
+                  />
+                  <ChannelCount
+                    swatch={CHANNEL_SWATCHES.MARKETPLACE}
+                    label="Marketplace"
+                    value={data.byChannel.MARKETPLACE}
+                  />
                 </dl>
-              </div>
-              {/* The counts above carry the numbers; the bar only shows the split. */}
-              <div
-                aria-hidden
-                className="flex h-2 gap-0.5 overflow-hidden rounded-full bg-stone-100 dark:bg-stone-800"
-              >
-                <div
-                  className="bg-emerald-500"
-                  style={{ flexGrow: data.byChannel.WHATSAPP }}
-                />
-                <div
-                  className="bg-sky-500"
-                  style={{ flexGrow: data.byChannel.MARKETPLACE }}
-                />
               </div>
               {data.byPlatform.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
@@ -184,6 +187,9 @@ const BuyingInterestCard = () => {
                 </div>
               )}
             </div>
+
+            {/* Remounts per window, so a picked day never carries over */}
+            <DailyClicksChart key={data.days} daily={data.daily} />
 
             <div className="flex flex-col gap-1">
               <p className="text-[11px] font-semibold tracking-wider text-stone-400 uppercase dark:text-stone-500">

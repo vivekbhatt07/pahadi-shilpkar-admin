@@ -1,6 +1,8 @@
 import {
   FolderTree,
+  GalleryHorizontalEnd,
   Gift,
+  Inbox,
   LayoutDashboard,
   Lock,
   MessageSquare,
@@ -24,6 +26,8 @@ export type TNavItem = {
   matchPath?: string;
   /** Extra search terms for the command palette. */
   keywords?: string;
+  /** A live count shown beside the item in the sidebar. */
+  badge?: 'newInquiries';
 };
 
 export type TNavSection = {
@@ -69,8 +73,26 @@ export const NAV_SECTIONS: TNavSection[] = [
     ],
   },
   {
+    label: 'Storefront',
+    items: [
+      {
+        label: 'Banners',
+        to: ROUTES.PRIVATE.BANNERS,
+        icon: GalleryHorizontalEnd,
+        keywords: 'home page slides carousel hero promotions campaigns',
+      },
+    ],
+  },
+  {
     label: 'Community',
     items: [
+      {
+        label: 'Inquiries',
+        to: ROUTES.PRIVATE.INQUIRIES,
+        icon: Inbox,
+        keywords: 'messages contact custom bulk orders requests inbox',
+        badge: 'newInquiries',
+      },
       {
         label: 'Testimonials',
         to: ROUTES.PRIVATE.TESTIMONIALS,

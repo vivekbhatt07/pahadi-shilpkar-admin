@@ -5,12 +5,14 @@ import PageLayout from '@/components/layouts/PageLayout';
 import { Loader } from '@/components/ui/loader';
 import { ROUTES } from '@/constants/routes';
 import { useAuthBootstrap } from '@/hooks/auth';
+import BannersPage from '@/pages/private/banners';
 import CategoriesPage from '@/pages/private/categories';
 import CombosPage from '@/pages/private/combos';
 import CreateComboPage from '@/pages/private/combos/create';
 import ComboDetailPage from '@/pages/private/combos/detail';
 import EditComboPage from '@/pages/private/combos/edit';
 import DashboardPage from '@/pages/private/dashboard';
+import InquiriesPage from '@/pages/private/inquiries';
 import ProductsPage from '@/pages/private/products';
 import CreateProductPage from '@/pages/private/products/create';
 import ProductDetailPage from '@/pages/private/products/detail';
@@ -94,6 +96,8 @@ export const AppRouter = () => {
             path={ROUTES.PRIVATE.COMBOS.EDIT(':slug')}
             element={<EditComboPage />}
           />
+          <Route path={ROUTES.PRIVATE.BANNERS} element={<BannersPage />} />
+          <Route path={ROUTES.PRIVATE.INQUIRIES} element={<InquiriesPage />} />
           <Route
             path={ROUTES.PRIVATE.TESTIMONIALS}
             element={<TestimonialsPage />}

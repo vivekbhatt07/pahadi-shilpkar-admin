@@ -100,6 +100,7 @@ const DashboardPage = () => {
   const hiddenComboCount = counts
     ? counts.combos.active - counts.combos.visible
     : 0;
+  const newInquiryCount = counts?.inquiries.new ?? 0;
 
   const greeting = user?.firstName
     ? `${getGreeting()}, ${user.firstName}`
@@ -163,6 +164,26 @@ const DashboardPage = () => {
         >
           A combo only shows while every product in it is active. Reactivate
           those products or remove them from the combo.
+        </Callout>
+      )}
+
+      {newInquiryCount > 0 && (
+        <Callout
+          variant="info"
+          size="md"
+          title={`${newInquiryCount} new ${
+            newInquiryCount === 1 ? 'inquiry' : 'inquiries'
+          } from the storefront`}
+          action={
+            <Button variant="outline" size="sm" asChild>
+              <RouterLink to={`${ROUTES.PRIVATE.INQUIRIES}?status=NEW`}>
+                Read {newInquiryCount === 1 ? 'it' : 'them'}
+              </RouterLink>
+            </Button>
+          }
+        >
+          Custom pieces, bulk orders and questions — a quick reply turns more of
+          them into orders.
         </Callout>
       )}
 
