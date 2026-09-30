@@ -1,3 +1,4 @@
+import { Link as RouterLink } from 'react-router';
 import { Trash2 } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +12,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { SimpleTooltip } from '@/components/ui/tooltip';
+import { ROUTES } from '@/constants/routes';
 import { formatDateTime } from '@/helpers/format';
 import { cn } from '@/lib/utils';
 import type { Inquiry } from '@/types/api';
@@ -105,12 +107,14 @@ const InquiriesTable = ({
                 </div>
               </TableCell>
 
-              <TableCell className="hidden text-sm text-stone-700 md:table-cell dark:text-stone-300">
-                {INQUIRY_TYPE_LABELS[inquiry.type]}
+              <TableCell className="hidden md:table-cell">
+                <Badge variant="outline">
+                  {INQUIRY_TYPE_LABELS[inquiry.type]}
+                </Badge>
               </TableCell>
 
               <TableCell className="hidden sm:table-cell">
-                <p className="line-clamp-2 max-w-md text-sm leading-relaxed text-stone-700 dark:text-stone-300">
+                <p className="line-clamp-1 max-w-md text-sm text-stone-700 dark:text-stone-300">
                   {inquiry.message}
                 </p>
                 <p
@@ -124,7 +128,24 @@ const InquiriesTable = ({
                     {INQUIRY_TYPE_LABELS[inquiry.type]}
                     {details && ' · '}
                   </span>
-                  {details}
+                  {inquiry.product && (
+                    <>
+                      About{' '}
+                      <RouterLink
+                        to={ROUTES.PRIVATE.PRODUCTS.DETAIL(
+                          inquiry.product.slug,
+                        )}
+                        // The row opens the inquiry; this link goes to the product
+                        onClick={(event) => event.stopPropagation()}
+                        className="font-medium text-stone-700 underline-offset-2 hover:text-accent-600 hover:underline dark:text-stone-300 dark:hover:text-accent-400"
+                      >
+                        {inquiry.product.name}
+                      </RouterLink>
+                    </>
+                  )}
+                  {inquiry.product && inquiry.quantity !== null && ' · '}
+                  {inquiry.quantity !== null &&
+                    `${inquiry.quantity.toLocaleString('en-IN')} pieces`}
                 </p>
               </TableCell>
 
