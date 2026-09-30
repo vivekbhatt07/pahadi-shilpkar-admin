@@ -47,7 +47,9 @@ import {
 } from '../constants';
 import { productFormSchema } from '../schemas';
 import type { TProductFormData, TProductFormMode } from '../types';
+import ColorsField from './ColorsField';
 import HighlightsField from './HighlightsField';
+import MeasurementsField from './MeasurementsField';
 import PurchaseLinksField from './PurchaseLinksField';
 import SpecificationsField from './SpecificationsField';
 
@@ -80,6 +82,30 @@ const RupeePrefix = () => (
   <span className="text-sm text-stone-400 dark:text-stone-500">₹</span>
 );
 
+const FormSubsection = ({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: React.ReactNode;
+  children: React.ReactNode;
+}) => (
+  <section className="flex flex-col gap-3 border-t border-stone-100 pt-4 dark:border-stone-800">
+    <div>
+      <h3 className="text-sm font-medium text-stone-700 dark:text-stone-300">
+        {title}
+      </h3>
+      {description && (
+        <p className="mt-0.5 text-xs text-stone-400 dark:text-stone-500">
+          {description}
+        </p>
+      )}
+    </div>
+    {children}
+  </section>
+);
+
 const ProductForm = ({
   mode,
   defaultValues,
@@ -101,7 +127,6 @@ const ProductForm = ({
     IMAGES,
     VIDEO_URL,
     MATERIAL,
-    DIMENSIONS,
     WEIGHT,
     CARE_INSTRUCTIONS,
     TAGS,
@@ -333,7 +358,7 @@ const ProductForm = ({
                 <CardTitle>Craft details</CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col gap-4">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <FormField
                     control={form.control}
                     name={MATERIAL}
@@ -344,24 +369,6 @@ const ProductForm = ({
                           <Input
                             placeholder="Deodar wood"
                             maxLength={PRODUCT_LIMITS.MATERIAL_MAX}
-                            disabled={isPending}
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name={DIMENSIONS}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel optional>Dimensions</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="30 × 30 × 2 cm"
-                            maxLength={PRODUCT_LIMITS.DIMENSIONS_MAX}
                             disabled={isPending}
                             {...field}
                           />
@@ -415,12 +422,31 @@ const ProductForm = ({
                   )}
                 />
 
-                <div>
-                  <p className="mb-2 text-sm font-medium text-stone-700 dark:text-stone-300">
-                    Specifications
-                  </p>
+                <FormSubsection
+                  title="Colours"
+                  description="The colours this piece is made in, shown as swatches in this order. A piece in another colour is a separate product — duplicate it."
+                >
+                  <ColorsField disabled={isPending} />
+                </FormSubsection>
+
+                <FormSubsection
+                  title="Measurements"
+                  description="Measured the way the shape calls for, so a round thali shows a diameter instead of a size that reads as a square."
+                >
+                  <MeasurementsField
+                    disabled={isPending}
+                    saved={product?.measurements ?? null}
+                    legacyDimensions={
+                      product && !product.measurements
+                        ? product.dimensions
+                        : null
+                    }
+                  />
+                </FormSubsection>
+
+                <FormSubsection title="Specifications">
                   <SpecificationsField disabled={isPending} />
-                </div>
+                </FormSubsection>
               </CardContent>
             </Card>
 

@@ -1,5 +1,8 @@
 import type {
+  MeasurementUnit,
   ProductAvailability,
+  ProductShape,
+  ProductSize,
   ProductSort,
   PurchaseLinkPlatform,
 } from '@/types/api';
@@ -16,7 +19,10 @@ export const PRODUCT_FORM_FIELD_NAMES = {
   IMAGES: 'images',
   VIDEO_URL: 'videoUrl',
   MATERIAL: 'material',
-  DIMENSIONS: 'dimensions',
+  COLORS: 'colors',
+  MEASUREMENTS: 'measurements',
+  /** Read-only: an unmeasured product's old free text; cleared to retire it. */
+  LEGACY_DIMENSIONS: 'legacyDimensions',
   WEIGHT: 'weight',
   CARE_INSTRUCTIONS: 'careInstructions',
   SPECIFICATIONS: 'specifications',
@@ -43,7 +49,10 @@ export const PRODUCT_LIMITS = {
   HIGHLIGHT_MAX: 150,
   IMAGES_MAX: 10,
   MATERIAL_MAX: 100,
-  DIMENSIONS_MAX: 100,
+  COLORS_MAX: 10,
+  COLOR_NAME_MAX: 30,
+  MEASUREMENT_MAX: 10000,
+  MEASUREMENT_NOTE_MAX: 100,
   WEIGHT_MAX: 50,
   CARE_INSTRUCTIONS_MAX: 1000,
   SPECIFICATIONS_MAX: 20,
@@ -81,6 +90,77 @@ export const PURCHASE_LINK_PLATFORM_OPTIONS: {
   { value: 'WEBSITE', label: 'Website' },
   { value: 'OTHER', label: 'Other' },
 ];
+
+export const SHAPE_OPTIONS: {
+  value: ProductShape;
+  label: string;
+  /** What the shape is for — shown under the picker. */
+  examples: string;
+}[] = [
+  {
+    value: 'RECTANGULAR',
+    label: 'Rectangular / square',
+    examples: 'Boxes, frames, trays, shawls, cushion covers',
+  },
+  {
+    value: 'ROUND',
+    label: 'Round',
+    examples: 'Plates, thalis, bowls, diyas, vases, round wall art',
+  },
+  {
+    value: 'OVAL',
+    label: 'Oval',
+    examples: 'Oval trays, baskets, frames',
+  },
+  {
+    value: 'IRREGULAR',
+    label: 'Irregular',
+    examples:
+      'Idols, figurines, spoons, anything else — measure the space it takes up',
+  },
+];
+
+export const SIZE_LABELS: Record<ProductSize, string> = {
+  length: 'Length',
+  width: 'Width',
+  height: 'Height',
+  diameter: 'Diameter',
+};
+
+/**
+ * The sizes each shape is measured by, in display order, and the ones it
+ * can't do without. An irregular piece needs at least one, but no particular
+ * one. Mirrors the backend.
+ */
+export const SHAPE_SIZES: Record<
+  ProductShape,
+  { sizes: readonly ProductSize[]; required: readonly ProductSize[] }
+> = {
+  RECTANGULAR: {
+    sizes: ['length', 'width', 'height'],
+    required: ['length', 'width'],
+  },
+  ROUND: { sizes: ['diameter', 'height'], required: ['diameter'] },
+  OVAL: { sizes: ['length', 'width', 'height'], required: ['length', 'width'] },
+  IRREGULAR: { sizes: ['length', 'width', 'height'], required: [] },
+};
+
+export const DEFAULT_MEASUREMENT_UNIT: MeasurementUnit = 'CM';
+
+export const UNIT_OPTIONS: {
+  value: MeasurementUnit;
+  label: string;
+  name: string;
+}[] = [
+  { value: 'MM', label: 'mm', name: 'Millimetres' },
+  { value: 'CM', label: 'cm', name: 'Centimetres' },
+  { value: 'M', label: 'm', name: 'Metres' },
+  { value: 'IN', label: 'in', name: 'Inches' },
+  { value: 'FT', label: 'ft', name: 'Feet' },
+];
+
+/** Where the colour picker starts for a row that has no swatch yet. */
+export const DEFAULT_SWATCH = '#b7410e';
 
 export const SORT_OPTIONS: { value: ProductSort; label: string }[] = [
   { value: 'newest', label: 'Newest first' },

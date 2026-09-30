@@ -61,7 +61,16 @@ export const VALIDATION_MESSAGES = {
     IMAGES_MAX: 'You can add up to 10 images',
     VIDEO_URL_INVALID: 'Please enter a valid video URL',
     MATERIAL_MAX: 'Material must be 100 characters or fewer',
-    DIMENSIONS_MAX: 'Dimensions must be 100 characters or fewer',
+    COLOR_NAME_REQUIRED: 'Each colour needs a name',
+    COLOR_NAME_MAX: 'Colour names must be 30 characters or fewer',
+    COLOR_NAME_DUPLICATE: 'This colour is already listed',
+    COLOR_HEX_INVALID: 'Swatch must be a hex colour like #b7410e',
+    COLORS_MAX: 'You can add up to 10 colours',
+    MEASUREMENT_SIZE_INVALID:
+      'Enter a number above 0 and up to 10,000, with at most 2 decimals',
+    MEASUREMENT_NOTE_MAX: 'Note must be 100 characters or fewer',
+    MEASUREMENT_AT_LEAST_ONE:
+      'Enter at least one size — length, width or height',
     WEIGHT_MAX: 'Weight must be 50 characters or fewer',
     CARE_INSTRUCTIONS_MAX: 'Care instructions must be 1000 characters or fewer',
     SPEC_LABEL_REQUIRED: 'Label is required',

@@ -106,6 +106,36 @@ export interface PurchaseLink {
   url: string;
 }
 
+/**
+ * A colour the piece is made in ("Geru red"). It describes this one product —
+ * it is not a variant a shopper picks.
+ */
+export interface ProductColor {
+  /** ≤30, unique per product ignoring case. */
+  name: string;
+  /** Always returned as lowercase "#rrggbb"; null = no swatch (wood grain, multicolour). */
+  hex: string | null;
+}
+
+export type ProductShape = 'RECTANGULAR' | 'ROUND' | 'OVAL' | 'IRREGULAR';
+
+export type MeasurementUnit = 'MM' | 'CM' | 'M' | 'IN' | 'FT';
+
+export type ProductSize = 'length' | 'width' | 'height' | 'diameter';
+
+/** The shape decides which sizes apply; sizes it doesn't use are always null. */
+export interface ProductMeasurements {
+  shape: ProductShape;
+  /** One unit for every size. */
+  unit: MeasurementUnit;
+  length: number | null;
+  width: number | null;
+  height: number | null;
+  diameter: number | null;
+  /** ≤100, e.g. "Each piece is hand-carved, so sizes vary slightly". */
+  note: string | null;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -123,6 +153,15 @@ export interface Product {
   images: string[];
   videoUrl: string | null;
   material: string | null;
+  /** Display order; [] when none. */
+  colors: ProductColor[];
+  /** Null until measured. */
+  measurements: ProductMeasurements | null;
+  /**
+   * Read-only, derived from measurements: "Round · Diameter 30 cm × Height 2 cm",
+   * with the note (if any) on a second line after "\n". A product saved before
+   * measurements existed has measurements: null and its old free text here.
+   */
   dimensions: string | null;
   weight: string | null;
   careInstructions: string | null;
@@ -494,6 +533,22 @@ export interface ProductListParams {
   includeInactive?: boolean;
 }
 
+/**
+ * Replaced wholesale, never merged with the stored one. Sizes the shape
+ * doesn't use are dropped by the API.
+ */
+export interface ProductMeasurementsPayload {
+  shape: ProductShape;
+  /** CM when left out. */
+  unit?: MeasurementUnit;
+  length?: number | null;
+  width?: number | null;
+  height?: number | null;
+  diameter?: number | null;
+  note?: string | null;
+}
+
+/** `dimensions` is derived — sending it is a validation error. */
 export interface CreateProductPayload {
   name: string;
   price: number;
@@ -507,7 +562,9 @@ export interface CreateProductPayload {
   images?: string[];
   videoUrl?: string | null;
   material?: string | null;
-  dimensions?: string | null;
+  colors?: ProductColor[];
+  /** `null` removes the measurements (and retires any old free-text dimensions). */
+  measurements?: ProductMeasurementsPayload | null;
   weight?: string | null;
   careInstructions?: string | null;
   specifications?: ProductSpecification[];

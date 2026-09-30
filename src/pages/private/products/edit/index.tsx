@@ -15,6 +15,7 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import type { Product, UpdateProductPayload } from '@/types/api';
 
 import { DEACTIVATE_WARNING } from '../constants';
+import { toMeasurementsFormValue, toMeasurementsPayload } from '../helpers';
 import ProductForm from '../layouts/ProductForm';
 import type { TProductFormData } from '../types';
 
@@ -30,7 +31,10 @@ const toFormData = (product: Product): TProductFormData => ({
   images: product.images,
   videoUrl: product.videoUrl ?? '',
   material: product.material ?? '',
-  dimensions: product.dimensions ?? '',
+  colors: product.colors,
+  measurements: toMeasurementsFormValue(product.measurements),
+  // Only an unmeasured product still carries its old free text.
+  legacyDimensions: product.measurements ? null : product.dimensions,
   weight: product.weight ?? '',
   careInstructions: product.careInstructions ?? '',
   specifications: product.specifications,
@@ -48,6 +52,15 @@ const toFormData = (product: Product): TProductFormData => ({
   metaTitle: product.metaTitle ?? '',
   metaDescription: product.metaDescription ?? '',
   categoryId: product.categoryId,
+});
+
+/**
+ * Measurements are compared as they would be sent, so sizes left over from
+ * switching shapes back and forth don't count as a change.
+ */
+const toComparable = (data: TProductFormData) => ({
+  ...data,
+  measurements: toMeasurementsPayload(data.measurements),
 });
 
 type TPendingSubmit = {
@@ -95,7 +108,10 @@ const EditProductPage = () => {
 
     // Only changed fields are sent; an unchanged name never regenerates the
     // slug, and array fields are sent whole whenever they changed at all.
-    const changed = pickChangedFields(toFormData(product.data), data);
+    const changed = pickChangedFields(
+      toComparable(toFormData(product.data)),
+      toComparable(data),
+    );
     if (Object.keys(changed).length === 0) {
       toast.info('No changes to save');
       return;
@@ -125,9 +141,12 @@ const EditProductPage = () => {
       ...(changed.material !== undefined && {
         material: changed.material || null,
       }),
-      ...(changed.dimensions !== undefined && {
-        dimensions: changed.dimensions || null,
-      }),
+      ...(changed.colors !== undefined && { colors: changed.colors }),
+      // Sent whole, or null to remove them. Removing only the old free-text
+      // dimensions is also a null — any save of measurements retires it.
+      ...(changed.measurements !== undefined
+        ? { measurements: changed.measurements }
+        : changed.legacyDimensions !== undefined && { measurements: null }),
       ...(changed.weight !== undefined && { weight: changed.weight || null }),
       ...(changed.careInstructions !== undefined && {
         careInstructions: changed.careInstructions || null,
