@@ -17,8 +17,9 @@ import ListSkeletonRows from './ListSkeletonRows';
 
 /**
  * Products shoppers asked to be emailed about ("Notify me"), most wanted
- * first — what to make or restock next. Saving one as In stock or Made to
- * order emails everyone waiting and clears it from this list.
+ * first — what to make or restock next. Rows open the edit form: saving one
+ * as In stock or Made to order emails everyone waiting and clears it from
+ * this list.
  */
 const RestockDemandCard = () => {
   const stats = useStockAlertStats();
@@ -57,7 +58,7 @@ const RestockDemandCard = () => {
             {data.products.map(({ product, waiting, since }) => (
               <li key={product.id}>
                 <RouterLink
-                  to={ROUTES.PRIVATE.PRODUCTS.DETAIL(product.slug)}
+                  to={ROUTES.PRIVATE.PRODUCTS.EDIT(product.slug)}
                   className="group flex items-center gap-3 px-3 py-3 transition-colors outline-none hover:bg-stone-50 focus-visible:bg-stone-50 sm:px-4 md:px-6 dark:hover:bg-stone-800/40 dark:focus-visible:bg-stone-800/40"
                 >
                   <ImageThumb

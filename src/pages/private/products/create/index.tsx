@@ -8,6 +8,7 @@ import { applyApiFieldErrors } from '@/helpers/form';
 import { useCreateProduct } from '@/hooks/products';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
+import { EMPTY_MEASUREMENTS, toMeasurementsPayload } from '../helpers';
 import ProductForm from '../layouts/ProductForm';
 import type { TProductFormData } from '../types';
 
@@ -23,7 +24,9 @@ const DEFAULT_VALUES: TProductFormData = {
   images: [],
   videoUrl: '',
   material: '',
-  dimensions: '',
+  colors: [],
+  measurements: EMPTY_MEASUREMENTS,
+  legacyDimensions: null,
   weight: '',
   careInstructions: '',
   specifications: [],
@@ -49,6 +52,7 @@ const CreateProductPage = () => {
     data,
     form,
   ) => {
+    const measurements = toMeasurementsPayload(data.measurements);
     createProduct.mutate(
       {
         name: data.name,
@@ -67,7 +71,8 @@ const CreateProductPage = () => {
         images: data.images,
         ...(data.videoUrl && { videoUrl: data.videoUrl }),
         ...(data.material && { material: data.material }),
-        ...(data.dimensions && { dimensions: data.dimensions }),
+        colors: data.colors,
+        ...(measurements && { measurements }),
         ...(data.weight && { weight: data.weight }),
         ...(data.careInstructions && {
           careInstructions: data.careInstructions,

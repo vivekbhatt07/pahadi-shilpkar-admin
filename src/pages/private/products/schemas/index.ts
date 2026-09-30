@@ -1,8 +1,18 @@
 import { z } from 'zod';
 
 import { VALIDATION_MESSAGES } from '@/constants/messages/shared';
-import { SKU_REGEX, SLUG_REGEX } from '@/constants/regex';
-import { PRODUCT_FORM_FIELD_NAMES, PRODUCT_LIMITS } from '../constants';
+import {
+  HEX_COLOR_REGEX,
+  MEASUREMENT_REGEX,
+  SKU_REGEX,
+  SLUG_REGEX,
+} from '@/constants/regex';
+import {
+  PRODUCT_FORM_FIELD_NAMES,
+  PRODUCT_LIMITS,
+  SHAPE_SIZES,
+  SIZE_LABELS,
+} from '../constants';
 
 const { PRODUCT, URL, SLUG } = VALIDATION_MESSAGES;
 
@@ -37,6 +47,97 @@ const specificationSchema = z.object({
     .min(1, PRODUCT.SPEC_VALUE_REQUIRED)
     .max(PRODUCT_LIMITS.SPEC_VALUE_MAX, PRODUCT.SPEC_VALUE_MAX),
 });
+
+const colorSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, PRODUCT.COLOR_NAME_REQUIRED)
+    .max(PRODUCT_LIMITS.COLOR_NAME_MAX, PRODUCT.COLOR_NAME_MAX),
+  /** Null = no swatch. */
+  hex: z.string().regex(HEX_COLOR_REGEX, PRODUCT.COLOR_HEX_INVALID).nullable(),
+});
+
+const colorsSchema = z
+  .array(colorSchema)
+  .max(PRODUCT_LIMITS.COLORS_MAX, PRODUCT.COLORS_MAX)
+  // "Red" and "red " are the same colour — flag the repeat, not the first.
+  .superRefine((colors, ctx) => {
+    const seen = new Set<string>();
+    colors.forEach((color, index) => {
+      const key = color.name.trim().toLowerCase();
+      if (!key) return;
+      if (seen.has(key)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: [index, 'name'],
+          message: PRODUCT.COLOR_NAME_DUPLICATE,
+        });
+      }
+      seen.add(key);
+    });
+  });
+
+const isValidSize = (size: number) =>
+  size > 0 &&
+  size <= PRODUCT_LIMITS.MEASUREMENT_MAX &&
+  MEASUREMENT_REGEX.test(String(size));
+
+/**
+ * `shape: null` = not measured. Only the sizes the shape uses are checked —
+ * values left over from switching shapes are dropped on save, so they can't
+ * block it.
+ */
+const measurementsSchema = z
+  .object({
+    shape: z.enum(['RECTANGULAR', 'ROUND', 'OVAL', 'IRREGULAR']).nullable(),
+    unit: z.enum(['MM', 'CM', 'M', 'IN', 'FT']),
+    length: z.number().nullable(),
+    width: z.number().nullable(),
+    height: z.number().nullable(),
+    diameter: z.number().nullable(),
+    note: z
+      .string()
+      .trim()
+      .max(PRODUCT_LIMITS.MEASUREMENT_NOTE_MAX, PRODUCT.MEASUREMENT_NOTE_MAX),
+  })
+  .superRefine((measurements, ctx) => {
+    const { shape } = measurements;
+    if (shape === null) return;
+
+    const { sizes, required } = SHAPE_SIZES[shape];
+    sizes.forEach((size) => {
+      const value = measurements[size];
+      if (value === null) {
+        if (required.includes(size)) {
+          ctx.addIssue({
+            code: 'custom',
+            path: [size],
+            message: `${SIZE_LABELS[size]} is required for ${shape.toLowerCase()} pieces`,
+          });
+        }
+        return;
+      }
+      if (!isValidSize(value)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: [size],
+          message: PRODUCT.MEASUREMENT_SIZE_INVALID,
+        });
+      }
+    });
+
+    if (
+      shape === 'IRREGULAR' &&
+      sizes.every((size) => measurements[size] === null)
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: [],
+        message: PRODUCT.MEASUREMENT_AT_LEAST_ONE,
+      });
+    }
+  });
 
 /** Shared with the combo form. */
 export const purchaseLinkSchema = z.object({
@@ -117,10 +218,9 @@ export const productFormSchema = z
       .string()
       .trim()
       .max(PRODUCT_LIMITS.MATERIAL_MAX, PRODUCT.MATERIAL_MAX),
-    [PRODUCT_FORM_FIELD_NAMES.DIMENSIONS]: z
-      .string()
-      .trim()
-      .max(PRODUCT_LIMITS.DIMENSIONS_MAX, PRODUCT.DIMENSIONS_MAX),
+    [PRODUCT_FORM_FIELD_NAMES.COLORS]: colorsSchema,
+    [PRODUCT_FORM_FIELD_NAMES.MEASUREMENTS]: measurementsSchema,
+    [PRODUCT_FORM_FIELD_NAMES.LEGACY_DIMENSIONS]: z.string().nullable(),
     [PRODUCT_FORM_FIELD_NAMES.WEIGHT]: z
       .string()
       .trim()

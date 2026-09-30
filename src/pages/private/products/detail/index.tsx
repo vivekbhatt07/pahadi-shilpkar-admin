@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 
 import Callout from '@/components/custom/Callout';
+import ColorSwatch from '@/components/custom/ColorSwatch';
 import EmptyState from '@/components/custom/EmptyState';
 import ImageThumb from '@/components/custom/ImageThumb';
 import ConfirmDialog from '@/components/dialogs/confirm-dialog';
@@ -35,6 +36,7 @@ import {
   useProduct,
 } from '@/hooks/products';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { cn } from '@/lib/utils';
 
 import {
   comboImages,
@@ -51,11 +53,13 @@ import ProductTestimonials from './layouts/ProductTestimonials';
 const DetailField = ({
   label,
   children,
+  className,
 }: {
   label: string;
   children: React.ReactNode;
+  className?: string;
 }) => (
-  <div className="flex flex-col gap-1">
+  <div className={cn('flex flex-col gap-1', className)}>
     <dt className="text-[11px] font-semibold tracking-wider text-stone-400 uppercase dark:text-stone-500">
       {label}
     </dt>
@@ -114,6 +118,9 @@ const ProductDetailPage = () => {
   }
 
   const item = product.data;
+  // "Round · Diameter 30 cm × Height 2 cm", then the admin's note, if any.
+  const [dimensionsLine, ...dimensionsNote] =
+    item.dimensions?.split('\n') ?? [];
 
   const handleDelete = () => {
     deleteProduct.mutate(item.id, {
@@ -131,6 +138,7 @@ const ProductDetailPage = () => {
   const hasCraftDetails =
     item.material ||
     item.dimensions ||
+    item.colors.length > 0 ||
     item.weight ||
     item.careInstructions ||
     item.specifications.length > 0;
@@ -334,20 +342,56 @@ const ProductDetailPage = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col gap-5">
-                {(item.material || item.dimensions || item.weight) && (
+                {(item.material ||
+                  item.dimensions ||
+                  item.weight ||
+                  item.colors.length > 0) && (
                   <dl className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3">
                     {item.material && (
                       <DetailField label="Material">
                         {item.material}
                       </DetailField>
                     )}
-                    {item.dimensions && (
-                      <DetailField label="Dimensions">
-                        {item.dimensions}
-                      </DetailField>
-                    )}
                     {item.weight && (
                       <DetailField label="Weight">{item.weight}</DetailField>
+                    )}
+                    {item.dimensions && (
+                      <DetailField label="Dimensions" className="col-span-full">
+                        <span className="block">{dimensionsLine}</span>
+                        {dimensionsNote.length > 0 && (
+                          <span className="mt-0.5 block text-xs whitespace-pre-line text-stone-500 dark:text-stone-400">
+                            {dimensionsNote.join('\n')}
+                          </span>
+                        )}
+                        {!item.measurements && (
+                          <span className="mt-1 block text-xs text-amber-700 dark:text-amber-400">
+                            Entered before measurements —{' '}
+                            <Link
+                              to={ROUTES.PRIVATE.PRODUCTS.EDIT(item.slug)}
+                              className="underline underline-offset-2"
+                            >
+                              re-enter them with a shape
+                            </Link>{' '}
+                            so shoppers can tell round from square.
+                          </span>
+                        )}
+                      </DetailField>
+                    )}
+                    {item.colors.length > 0 && (
+                      <DetailField label="Colours" className="col-span-full">
+                        <ul className="flex flex-wrap gap-1.5">
+                          {item.colors.map((color) => (
+                            <li
+                              key={color.name}
+                              title={color.hex ?? 'No swatch'}
+                              className="flex items-center gap-1.5 rounded-full border border-stone-200 py-1 pr-2.5 pl-1.5 text-xs font-medium text-stone-700 dark:border-stone-700 dark:text-stone-300"
+                            >
+                              <ColorSwatch hex={color.hex} />
+                              {color.name}
+                            </li>
+                          ))}
+                        </ul>
+                      </DetailField>
                     )}
                   </dl>
                 )}
