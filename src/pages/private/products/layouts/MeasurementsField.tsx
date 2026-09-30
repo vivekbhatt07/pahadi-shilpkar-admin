@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { RadioGroup } from 'radix-ui';
 import { Eraser } from 'lucide-react';
 import { useFormContext, useFormState, useWatch } from 'react-hook-form';
@@ -21,11 +22,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import type { ProductMeasurements, ProductShape } from '@/types/api';
+import type {
+  ProductMeasurements,
+  ProductShape,
+  ProductSize,
+} from '@/types/api';
 
 import {
   PRODUCT_FORM_FIELD_NAMES,
   PRODUCT_LIMITS,
+  PRODUCT_SIZES,
   SHAPE_OPTIONS,
   SHAPE_SIZES,
   SIZE_LABELS,
@@ -87,9 +93,13 @@ const MeasurementsField = ({
   saved,
   legacyDimensions,
 }: TMeasurementsFieldProps) => {
-  const { control, setValue, clearErrors, trigger } =
+  const { control, setValue, getValues, clearErrors, trigger } =
     useFormContext<TProductFormData>();
   const measurements = useWatch({ control, name: MEASUREMENTS });
+  // Sizes the chosen shape doesn't use wait here, not in the form, so the
+  // form only holds what would be sent: a size left over from switching
+  // shapes can't block a save or count as a change. Switching back restores it.
+  const setAsideSizes = useRef<Partial<Record<ProductSize, number>>>({});
   const keepsLegacy = useWatch({ control, name: LEGACY_DIMENSIONS }) !== null;
   // useFormState (not formState from context) so the React Compiler sees
   // fresh errors after a submit.
@@ -117,7 +127,24 @@ const MeasurementsField = ({
     if (isSubmitted) void trigger(MEASUREMENTS);
   };
 
+  const changeShape = (nextShape: ProductShape) => {
+    const next = { ...getValues(MEASUREMENTS), shape: nextShape };
+    const setAside = setAsideSizes.current;
+    PRODUCT_SIZES.forEach((size) => {
+      if (SHAPE_SIZES[nextShape].sizes.includes(size)) {
+        if (next[size] === null) next[size] = setAside[size] ?? null;
+        delete setAside[size];
+      } else {
+        if (next[size] !== null) setAside[size] = next[size];
+        next[size] = null;
+      }
+    });
+    setValue(MEASUREMENTS, next, { shouldDirty: true });
+    revalidate();
+  };
+
   const removeMeasurements = () => {
+    setAsideSizes.current = {};
     setValue(MEASUREMENTS, EMPTY_MEASUREMENTS, { shouldDirty: true });
     clearErrors(MEASUREMENTS);
   };
@@ -221,10 +248,7 @@ const MeasurementsField = ({
             <FormControl>
               <RadioGroup.Root
                 value={field.value ?? ''}
-                onValueChange={(value) => {
-                  field.onChange(value as ProductShape);
-                  revalidate();
-                }}
+                onValueChange={(value) => changeShape(value as ProductShape)}
                 disabled={disabled}
                 aria-label="Shape"
                 className="grid grid-cols-2 gap-2 sm:grid-cols-4"

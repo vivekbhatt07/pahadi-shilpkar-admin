@@ -120,6 +120,13 @@ export const SHAPE_OPTIONS: {
   },
 ];
 
+export const PRODUCT_SIZES: readonly ProductSize[] = [
+  'length',
+  'width',
+  'height',
+  'diameter',
+];
+
 export const SIZE_LABELS: Record<ProductSize, string> = {
   length: 'Length',
   width: 'Width',

@@ -10,7 +10,12 @@ export const useProduct = (slug: string | undefined) =>
     queryFn: async () => {
       const response = await productsService.getBySlug(slug!, true);
       if (!response.data) throw new Error(response.message);
-      return response.data;
+      // A backend from before colours and measurements leaves both out.
+      return {
+        ...response.data,
+        colors: response.data.colors ?? [],
+        measurements: response.data.measurements ?? null,
+      };
     },
     enabled: Boolean(slug),
     // The page renders its own not-found state.
