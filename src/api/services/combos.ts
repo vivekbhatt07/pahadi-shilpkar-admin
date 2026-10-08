@@ -57,7 +57,7 @@ export const combosService = {
     return data;
   },
 
-  /** Removes the combo only; its products are untouched. */
+  /** Removes the combo and its testimonials; its products are untouched. */
   remove: async (id: string) => {
     const { data } = await api.delete<ApiResponse>(`/combos/${id}`);
     return data;

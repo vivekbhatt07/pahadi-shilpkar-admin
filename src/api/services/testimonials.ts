@@ -3,30 +3,33 @@ import type {
   ApiResponse,
   Paginated,
   Testimonial,
+  TestimonialFilter,
   TestimonialListParams,
-  TestimonialWithProduct,
+  TestimonialWithListing,
 } from '@/types/api';
 
 export const testimonialsService = {
-  /** Newest first, not paginated. `productId` is required. */
-  listByProduct: async (productId: string) => {
+  /**
+   * One product's or one combo's testimonials, newest first, not paginated.
+   * The admin token also returns those of inactive products and hidden combos.
+   */
+  list: async (filter: TestimonialFilter) => {
     const { data } = await api.get<ApiResponse<Testimonial[]>>(
       '/testimonials',
-      { params: { productId } },
+      { params: filter },
     );
     return data;
   },
 
-  /** Newest first, across all products. Admin only. */
+  /** Newest first, across all products and combos. Admin only. */
   listAll: async (params: TestimonialListParams = {}) => {
     const query: Record<string, string> = {};
     if (params.page) query.page = String(params.page);
     if (params.limit) query.limit = String(params.limit);
 
-    const { data } = await api.get<ApiResponse<Paginated<TestimonialWithProduct>>>(
-      '/testimonials/all',
-      { params: query },
-    );
+    const { data } = await api.get<
+      ApiResponse<Paginated<TestimonialWithListing>>
+    >('/testimonials/all', { params: query });
     return data;
   },
 

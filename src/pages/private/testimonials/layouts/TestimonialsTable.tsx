@@ -3,6 +3,7 @@ import { Trash2 } from 'lucide-react';
 
 import RatingStars from '@/components/custom/RatingStars';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -13,13 +14,38 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { SimpleTooltip } from '@/components/ui/tooltip';
-import { ROUTES } from '@/constants/routes';
 import { formatDateTime, getDisplayName, getInitials } from '@/helpers/format';
-import type { TestimonialWithProduct } from '@/types/api';
+import type { TestimonialWithListing } from '@/types/api';
+
+import { getTestimonialListing } from '../helpers';
 
 type TTestimonialsTableProps = {
-  testimonials: TestimonialWithProduct[];
-  onDelete: (testimonial: TestimonialWithProduct) => void;
+  testimonials: TestimonialWithListing[];
+  onDelete: (testimonial: TestimonialWithListing) => void;
+};
+
+/** A Product / Combo label, then a link to whichever was reviewed. */
+const ListingCell = ({
+  testimonial,
+}: {
+  testimonial: TestimonialWithListing;
+}) => {
+  const listing = getTestimonialListing(testimonial);
+  if (!listing) return <span className="text-sm text-stone-400">—</span>;
+
+  return (
+    <div className="flex min-w-0 items-center gap-2">
+      <Badge variant={listing.kind === 'Combo' ? 'accent' : 'outline'}>
+        {listing.kind}
+      </Badge>
+      <Link
+        to={listing.to}
+        className="truncate text-sm text-stone-700 transition-colors hover:text-accent-600 dark:text-stone-300 dark:hover:text-accent-400"
+      >
+        {listing.name}
+      </Link>
+    </div>
+  );
 };
 
 const TestimonialsTable = ({
@@ -31,7 +57,7 @@ const TestimonialsTable = ({
       <TableHeader className="bg-stone-50 dark:bg-stone-800/50">
         <TableRow>
           <TableHead className="min-w-48">Author</TableHead>
-          <TableHead className="hidden lg:table-cell">Product</TableHead>
+          <TableHead className="hidden lg:table-cell">Reviewed</TableHead>
           <TableHead className="w-28">Rating</TableHead>
           <TableHead className="min-w-64">Testimonial</TableHead>
           <TableHead className="hidden w-32 xl:table-cell">Posted</TableHead>
@@ -61,12 +87,7 @@ const TestimonialsTable = ({
             </TableCell>
 
             <TableCell className="hidden lg:table-cell">
-              <Link
-                to={ROUTES.PRIVATE.PRODUCTS.DETAIL(testimonial.product.slug)}
-                className="text-sm text-stone-700 transition-colors hover:text-accent-600 dark:text-stone-300 dark:hover:text-accent-400"
-              >
-                {testimonial.product.name}
-              </Link>
+              <ListingCell testimonial={testimonial} />
             </TableCell>
 
             <TableCell>

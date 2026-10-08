@@ -8,6 +8,7 @@ import {
   PackageX,
   Pencil,
   Sparkles,
+  Star,
   Trash2,
 } from 'lucide-react';
 
@@ -29,6 +30,7 @@ import {
   availabilityVariant,
 } from '../../products/helpers';
 import ProductGallery from '../../products/detail/layouts/ProductGallery';
+import ListingTestimonials from '../../testimonials/layouts/ListingTestimonials';
 import { COMBO_HIDDEN_BY_PRODUCT_WARNING } from '../constants';
 import { comboImages, hasInactiveProduct } from '../helpers';
 
@@ -204,11 +206,22 @@ const ComboDetailPage = () => {
                   : `Costs as much as the items bought separately (${formatPrice(item.itemsTotal)}).`}
               </p>
 
-              <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-5 border-t border-stone-100 pt-5 sm:grid-cols-3 dark:border-stone-800">
+              <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-5 border-t border-stone-100 pt-5 xl:grid-cols-4 dark:border-stone-800">
                 <DetailField label="Items">
                   <span className="font-medium tabular-nums text-stone-900 dark:text-stone-50">
                     {item.itemCount} ({item.items.length}{' '}
                     {item.items.length === 1 ? 'product' : 'products'})
+                  </span>
+                </DetailField>
+                <DetailField label="Rating">
+                  <span className="flex items-center gap-1.5">
+                    <Star className="size-4 fill-amber-400 text-amber-400" />
+                    <span className="font-medium text-stone-900 tabular-nums dark:text-stone-50">
+                      {item.avgRating.toFixed(1)}
+                    </span>
+                    <span className="text-stone-400">
+                      ({item.testimonialCount})
+                    </span>
                   </span>
                 </DetailField>
                 <DetailField label="Created">
@@ -331,6 +344,8 @@ const ComboDetailPage = () => {
         </div>
       </div>
 
+      <ListingTestimonials type="combo" listing={item} />
+
       <ConfirmDialog
         open={isDeleteOpen}
         onOpenChange={setIsDeleteOpen}
@@ -345,6 +360,8 @@ const ComboDetailPage = () => {
             <span className="font-medium text-stone-900 dark:text-stone-50">
               {item.name}
             </span>
+            {item.testimonialCount > 0 &&
+              ` and all ${item.testimonialCount} of its testimonials`}
             . Its products are not affected. To hide it temporarily, turn it
             inactive instead.
           </p>

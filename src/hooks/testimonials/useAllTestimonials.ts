@@ -4,7 +4,7 @@ import { testimonialsService } from '@/api/services/testimonials';
 import { QUERY_KEYS } from '@/constants/query-key';
 import type { TestimonialListParams } from '@/types/api';
 
-/** Admin-only global feed, across all products. */
+/** Admin-only global feed, across all products and combos. */
 export const useAllTestimonials = (params: TestimonialListParams = {}) =>
   useQuery({
     queryKey: QUERY_KEYS.TESTIMONIALS.ALL_LIST(params),

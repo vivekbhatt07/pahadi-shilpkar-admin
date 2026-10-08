@@ -36,6 +36,7 @@ import { useStats } from '@/hooks/stats';
 import { useAllTestimonials } from '@/hooks/testimonials';
 import { useAuthStore } from '@/store/authStore';
 
+import { getTestimonialListing } from '../testimonials/helpers';
 import BuyingInterestCard from './layouts/BuyingInterestCard';
 import ListSkeletonRows from './layouts/ListSkeletonRows';
 import RestockDemandCard from './layouts/RestockDemandCard';
@@ -334,42 +335,50 @@ const DashboardPage = () => {
               <ListSkeletonRows avatar="circle" />
             ) : latestTestimonials.length > 0 ? (
               <ul className="divide-y divide-stone-100 dark:divide-stone-800">
-                {latestTestimonials.map((testimonial) => (
-                  <li
-                    key={testimonial.id}
-                    className="flex gap-3 px-3 py-3 transition-colors hover:bg-stone-50/60 sm:px-4 md:px-6 dark:hover:bg-stone-800/20"
-                  >
-                    <Avatar className="size-9 shrink-0 border border-stone-200 dark:border-stone-800">
-                      <AvatarImage
-                        src={testimonial.user.avatar || undefined}
-                        alt={getDisplayName(testimonial.user)}
-                      />
-                      <AvatarFallback className="bg-stone-100 text-xs font-semibold text-stone-600 dark:bg-stone-800 dark:text-stone-300">
-                        {getInitials(testimonial.user)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <p className="text-sm font-medium text-stone-900 dark:text-stone-50">
-                          {getDisplayName(testimonial.user)}
+                {latestTestimonials.map((testimonial) => {
+                  const listing = getTestimonialListing(testimonial);
+                  return (
+                    <li
+                      key={testimonial.id}
+                      className="flex gap-3 px-3 py-3 transition-colors hover:bg-stone-50/60 sm:px-4 md:px-6 dark:hover:bg-stone-800/20"
+                    >
+                      <Avatar className="size-9 shrink-0 border border-stone-200 dark:border-stone-800">
+                        <AvatarImage
+                          src={testimonial.user.avatar || undefined}
+                          alt={getDisplayName(testimonial.user)}
+                        />
+                        <AvatarFallback className="bg-stone-100 text-xs font-semibold text-stone-600 dark:bg-stone-800 dark:text-stone-300">
+                          {getInitials(testimonial.user)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <p className="text-sm font-medium text-stone-900 dark:text-stone-50">
+                            {getDisplayName(testimonial.user)}
+                          </p>
+                          <RatingStars rating={testimonial.rating} size={12} />
+                        </div>
+                        <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-stone-500 dark:text-stone-400">
+                          “{testimonial.content}”
                         </p>
-                        <RatingStars rating={testimonial.rating} size={12} />
-                      </div>
-                      <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-stone-500 dark:text-stone-400">
-                        “{testimonial.content}”
-                      </p>
-                      <RouterLink
-                        to={ROUTES.PRIVATE.PRODUCTS.DETAIL(
-                          testimonial.product.slug,
+                        {listing ? (
+                          <RouterLink
+                            to={listing.to}
+                            className="mt-1 block truncate text-xs text-stone-400 transition-colors hover:text-accent-600 dark:text-stone-500 dark:hover:text-accent-400"
+                          >
+                            on {listing.kind === 'Combo' && 'combo '}
+                            {listing.name} ·{' '}
+                            {formatDateTime(testimonial.createdAt)}
+                          </RouterLink>
+                        ) : (
+                          <p className="mt-1 text-xs text-stone-400 dark:text-stone-500">
+                            {formatDateTime(testimonial.createdAt)}
+                          </p>
                         )}
-                        className="mt-1 block truncate text-xs text-stone-400 transition-colors hover:text-accent-600 dark:text-stone-500 dark:hover:text-accent-400"
-                      >
-                        on {testimonial.product.name} ·{' '}
-                        {formatDateTime(testimonial.createdAt)}
-                      </RouterLink>
-                    </div>
-                  </li>
-                ))}
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             ) : (
               <EmptyState

@@ -45,10 +45,10 @@ import {
 } from '../../combos/helpers';
 import { PRODUCT_DETAIL_COMBOS_LIMIT } from '../../combos/constants';
 import type { TCreateComboState } from '../../combos/types';
+import ListingTestimonials from '../../testimonials/layouts/ListingTestimonials';
 import { PRODUCT_DELETE_CONFIRMATION } from '../constants';
 import { AVAILABILITY_LABELS, availabilityVariant } from '../helpers';
 import ProductGallery from './layouts/ProductGallery';
-import ProductTestimonials from './layouts/ProductTestimonials';
 
 const DetailField = ({
   label,
@@ -553,7 +553,7 @@ const ProductDetailPage = () => {
         </div>
       </div>
 
-      <ProductTestimonials product={item} />
+      <ListingTestimonials type="product" listing={item} />
 
       <ConfirmDialog
         open={isDeleteOpen}
