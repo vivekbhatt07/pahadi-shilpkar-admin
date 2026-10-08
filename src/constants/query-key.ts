@@ -5,6 +5,7 @@ import type {
   CategoryTreeParams,
   InquiryListParams,
   ProductListParams,
+  TestimonialFilter,
   TestimonialListParams,
   UserListParams,
 } from '@/types/api';
@@ -43,7 +44,8 @@ export const QUERY_KEYS = {
   BUY_CLICK_STATS: (days: number) => ['buy-click-stats', days] as const,
   TESTIMONIALS: {
     ALL: ['testimonials'] as const,
-    LIST: (productId: string) => ['testimonials', 'list', productId] as const,
+    LIST: (filter: TestimonialFilter) =>
+      ['testimonials', 'list', filter] as const,
     ALL_LIST: (params: TestimonialListParams) =>
       ['testimonials', 'all', params] as const,
   },

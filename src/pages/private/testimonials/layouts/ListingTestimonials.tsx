@@ -12,18 +12,26 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { SimpleTooltip } from '@/components/ui/tooltip';
 import { formatDateTime, getDisplayName, getInitials } from '@/helpers/format';
 import { useDeleteTestimonial, useTestimonials } from '@/hooks/testimonials';
-import type { ProductDetail, Testimonial } from '@/types/api';
+import type { Combo, Product, Testimonial } from '@/types/api';
 
-type TProductTestimonialsProps = {
-  product: ProductDetail;
+type TListingTestimonialsProps = {
+  type: 'product' | 'combo';
+  listing: Pick<
+    Product | Combo,
+    'id' | 'slug' | 'avgRating' | 'testimonialCount'
+  >;
 };
 
 /**
- * Moderation is delete-only: admins cannot edit another user's testimonial
- * (PATCH is author-only and answers 403).
+ * The testimonials on one product or one combo — a combo's are its own, never
+ * its products'. Moderation is delete-only: admins cannot edit another user's
+ * testimonial (PATCH is author-only and answers 403).
  */
-const ProductTestimonials = ({ product }: TProductTestimonialsProps) => {
-  const testimonials = useTestimonials(product.id);
+const ListingTestimonials = ({ type, listing }: TListingTestimonialsProps) => {
+  const isProduct = type === 'product';
+  const testimonials = useTestimonials(
+    isProduct ? { productId: listing.id } : { comboId: listing.id },
+  );
   const deleteTestimonial = useDeleteTestimonial();
   const [target, setTarget] = useState<Testimonial | null>(null);
 
@@ -32,7 +40,9 @@ const ProductTestimonials = ({ product }: TProductTestimonialsProps) => {
   const handleDelete = () => {
     if (!target) return;
     deleteTestimonial.mutate(
-      { id: target.id, productId: product.id, productSlug: product.slug },
+      isProduct
+        ? { id: target.id, productSlug: listing.slug }
+        : { id: target.id, comboSlug: listing.slug },
       { onSuccess: () => setTarget(null) },
     );
   };
@@ -47,13 +57,13 @@ const ProductTestimonials = ({ product }: TProductTestimonialsProps) => {
               variant="secondary"
               className="ml-2 align-middle tabular-nums"
             >
-              {product.testimonialCount}
+              {listing.testimonialCount}
             </Badge>
           </CardTitle>
           <div className="flex items-center gap-2 text-xs text-stone-500 dark:text-stone-400">
-            <RatingStars rating={product.avgRating} />
+            <RatingStars rating={listing.avgRating} />
             <span className="tabular-nums">
-              {product.avgRating.toFixed(1)} average
+              {listing.avgRating.toFixed(1)} average
             </span>
           </div>
         </div>
@@ -109,7 +119,7 @@ const ProductTestimonials = ({ product }: TProductTestimonialsProps) => {
           <EmptyState
             icon={<MessageSquare className="size-5" />}
             title="No testimonials yet"
-            description="Customer testimonials for this product will appear here."
+            description={`Customer testimonials for this ${type} will appear here.`}
             className="py-10"
           />
         )}
@@ -137,4 +147,4 @@ const ProductTestimonials = ({ product }: TProductTestimonialsProps) => {
   );
 };
 
-export default ProductTestimonials;
+export default ListingTestimonials;

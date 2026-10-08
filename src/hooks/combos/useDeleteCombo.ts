@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { combosService } from '@/api/services/combos';
 import { QUERY_KEYS } from '@/constants/query-key';
 
-/** Removes the combo only; its products are untouched. */
+/** Removes the combo and its testimonials; its products are untouched. */
 export const useDeleteCombo = () => {
   const queryClient = useQueryClient();
 
@@ -14,6 +14,7 @@ export const useDeleteCombo = () => {
       toast.success(response.message);
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.COMBOS.ALL });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PRODUCTS.DETAILS });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.TESTIMONIALS.ALL });
     },
   });
 };

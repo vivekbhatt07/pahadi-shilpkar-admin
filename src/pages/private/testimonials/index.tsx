@@ -11,12 +11,13 @@ import { getDisplayName } from '@/helpers/format';
 import { useAllTestimonials, useDeleteTestimonial } from '@/hooks/testimonials';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { cn } from '@/lib/utils';
-import type { TestimonialWithProduct } from '@/types/api';
+import type { TestimonialWithListing } from '@/types/api';
 
 import {
   TESTIMONIAL_LIST_LIMIT,
   TESTIMONIAL_LIST_SEARCH_PARAMS,
 } from './constants';
+import { toDeleteTestimonialVariables } from './helpers';
 import TestimonialsTable from './layouts/TestimonialsTable';
 
 const { PAGE } = TESTIMONIAL_LIST_SEARCH_PARAMS;
@@ -24,7 +25,7 @@ const { PAGE } = TESTIMONIAL_LIST_SEARCH_PARAMS;
 const TestimonialsPage = () => {
   useDocumentTitle('Testimonials');
   const [searchParams, setSearchParams] = useSearchParams();
-  const [target, setTarget] = useState<TestimonialWithProduct | null>(null);
+  const [target, setTarget] = useState<TestimonialWithListing | null>(null);
 
   const page = Math.max(1, Number(searchParams.get(PAGE)) || 1);
 
@@ -49,14 +50,9 @@ const TestimonialsPage = () => {
 
   const handleDelete = () => {
     if (!target) return;
-    deleteTestimonial.mutate(
-      {
-        id: target.id,
-        productId: target.productId,
-        productSlug: target.product.slug,
-      },
-      { onSuccess: closeDialog },
-    );
+    deleteTestimonial.mutate(toDeleteTestimonialVariables(target), {
+      onSuccess: closeDialog,
+    });
   };
 
   return (
@@ -64,7 +60,7 @@ const TestimonialsPage = () => {
       <PageHeader
         title="Testimonials"
         count={testimonials.data?.total}
-        description="Customer testimonials across all products. Deleting one cannot be undone."
+        description="Customer testimonials across all products and combos. Deleting one cannot be undone."
       />
 
       {testimonials.isPending ? (

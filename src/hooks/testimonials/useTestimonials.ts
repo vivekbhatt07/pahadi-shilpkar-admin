@@ -2,12 +2,11 @@ import { useQuery } from '@tanstack/react-query';
 
 import { testimonialsService } from '@/api/services/testimonials';
 import { QUERY_KEYS } from '@/constants/query-key';
+import type { TestimonialFilter } from '@/types/api';
 
-/** Per-product only — there is no global testimonial feed. */
-export const useTestimonials = (productId: string | undefined) =>
+/** One product's or one combo's testimonials; the global feed is useAllTestimonials. */
+export const useTestimonials = (filter: TestimonialFilter) =>
   useQuery({
-    queryKey: QUERY_KEYS.TESTIMONIALS.LIST(productId ?? ''),
-    queryFn: async () =>
-      (await testimonialsService.listByProduct(productId!)).data ?? [],
-    enabled: Boolean(productId),
+    queryKey: QUERY_KEYS.TESTIMONIALS.LIST(filter),
+    queryFn: async () => (await testimonialsService.list(filter)).data ?? [],
   });

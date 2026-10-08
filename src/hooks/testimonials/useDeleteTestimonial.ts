@@ -4,21 +4,29 @@ import { toast } from 'sonner';
 import { testimonialsService } from '@/api/services/testimonials';
 import { QUERY_KEYS } from '@/constants/query-key';
 
-type TVariables = { id: string; productId: string; productSlug: string };
+/** Pass the slug of whichever was reviewed — the product or the combo. */
+type TVariables = { id: string; productSlug?: string; comboSlug?: string };
 
 export const useDeleteTestimonial = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: ({ id }: TVariables) => testimonialsService.remove(id),
-    onSuccess: (response, { productSlug }) => {
+    onSuccess: (response, { productSlug, comboSlug }) => {
       toast.success(response.message);
-      // Prefix match: also covers the per-product LIST and the global ALL_LIST.
+      // Prefix match: also covers the per-listing LIST and the global ALL_LIST.
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.TESTIMONIALS.ALL });
-      // avgRating / testimonialCount live on the product detail.
-      queryClient.invalidateQueries({
-        queryKey: QUERY_KEYS.PRODUCTS.DETAIL(productSlug),
-      });
+      // avgRating / testimonialCount live on the product or combo detail.
+      if (productSlug) {
+        queryClient.invalidateQueries({
+          queryKey: QUERY_KEYS.PRODUCTS.DETAIL(productSlug),
+        });
+      }
+      if (comboSlug) {
+        queryClient.invalidateQueries({
+          queryKey: QUERY_KEYS.COMBOS.DETAIL(comboSlug),
+        });
+      }
     },
   });
 };

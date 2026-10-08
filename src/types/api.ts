@@ -254,6 +254,12 @@ export interface Combo {
   purchaseLinks: PurchaseLink[];
   metaTitle: string | null;
   metaDescription: string | null;
+  /**
+   * Read-only; the combo's own testimonials, never its products'. 0 when
+   * there are none.
+   */
+  avgRating: number;
+  testimonialCount: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -279,7 +285,7 @@ export interface DashboardStats {
     featured: number;
   };
   users: { total: number; verified: number; admins: number };
-  /** avgRating is 0 when there are none. */
+  /** Product and combo testimonials together; avgRating is 0 when there are none. */
   testimonials: { total: number; avgRating: number };
   /** `new` = status NEW, not looked at yet. */
   inquiries: { total: number; new: number };
@@ -359,12 +365,15 @@ export interface StoreSettings {
 
 /* ── Testimonials ──────────────────────────────────────────────── */
 
+/** Exactly one of productId / comboId is set — the product or the combo reviewed. */
 export interface Testimonial {
   id: string;
   content: string;
+  /** 1–5 */
   rating: number;
   userId: string;
-  productId: string;
+  productId: string | null;
+  comboId: string | null;
   user: {
     id: string;
     firstName: string | null;
@@ -375,10 +384,19 @@ export interface Testimonial {
   updatedAt: string;
 }
 
-/** Only from GET /api/testimonials/all */
-export interface TestimonialWithProduct extends Testimonial {
-  product: { id: string; name: string; slug: string };
+/**
+ * Only from GET /api/testimonials/all. Exactly one of product / combo is set,
+ * matching productId / comboId — never assume `product` is there.
+ */
+export interface TestimonialWithListing extends Testimonial {
+  product: { id: string; name: string; slug: string } | null;
+  combo: { id: string; name: string; slug: string } | null;
 }
+
+/** GET /api/testimonials takes exactly one of these. */
+export type TestimonialFilter =
+  | { productId: string; comboId?: never }
+  | { comboId: string; productId?: never };
 
 export interface TestimonialListParams {
   page?: number;
