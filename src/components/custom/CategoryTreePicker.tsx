@@ -99,7 +99,11 @@ const CategoryTreePicker = ({
   };
 
   const triggerLabel =
-    value === null ? (allowNone ? noneLabel : placeholder) : (selected?.path ?? placeholder);
+    value === null
+      ? allowNone
+        ? noneLabel
+        : placeholder
+      : (selected?.path ?? placeholder);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -151,7 +155,10 @@ const CategoryTreePicker = ({
               )}
             >
               <Check
-                className={cn('size-3.5 shrink-0', value !== null && 'invisible')}
+                className={cn(
+                  'size-3.5 shrink-0',
+                  value !== null && 'invisible',
+                )}
               />
               {noneLabel}
             </button>

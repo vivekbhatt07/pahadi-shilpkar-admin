@@ -1,4 +1,4 @@
-import type z from 'zod';
+import type { z } from 'zod';
 
 import type { ComboProduct } from '@/types/api';
 import type { comboFormSchema } from '../schemas';

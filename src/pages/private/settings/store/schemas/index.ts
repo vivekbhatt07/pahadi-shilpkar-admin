@@ -2,7 +2,10 @@ import { z } from 'zod';
 
 import { VALIDATION_MESSAGES } from '@/constants/messages/shared';
 import { WHATSAPP_NUMBER_REGEX } from '@/constants/regex';
-import { STORE_SETTINGS_FORM_FIELD_NAMES, STORE_SETTINGS_LIMITS } from '../constants';
+import {
+  STORE_SETTINGS_FORM_FIELD_NAMES,
+  STORE_SETTINGS_LIMITS,
+} from '../constants';
 
 const { SETTINGS, EMAIL, URL } = VALIDATION_MESSAGES;
 

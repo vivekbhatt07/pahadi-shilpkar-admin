@@ -1,5 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm, type UseFormReturn } from 'react-hook-form';
+import {
+  useForm,
+  useFormState,
+  useWatch,
+  type UseFormReturn,
+} from 'react-hook-form';
 import { ExternalLink } from 'lucide-react';
 import { Link } from 'react-router';
 
@@ -145,19 +150,25 @@ const ProductForm = ({
     resolver: zodResolver(productFormSchema),
     defaultValues,
   });
+  const { control } = form;
 
-  const nameValue = form.watch(NAME);
-  const slugValue = form.watch(SLUG);
-  const shortDescriptionValue = form.watch(SHORT_DESCRIPTION) ?? '';
-  const descriptionValue = form.watch(DESCRIPTION) ?? '';
-  const careInstructionsValue = form.watch(CARE_INSTRUCTIONS) ?? '';
-  const whatsappMessageValue = form.watch(WHATSAPP_MESSAGE) ?? '';
-  const metaTitleValue = form.watch(META_TITLE) ?? '';
-  const metaDescriptionValue = form.watch(META_DESCRIPTION) ?? '';
-  const priceValue = form.watch(PRICE);
-  const compareAtPriceValue = form.watch(COMPARE_AT_PRICE);
-  const isActiveValue = form.watch(IS_ACTIVE);
-  const isDirty = form.formState.isDirty;
+  const nameValue = useWatch({ control, name: NAME });
+  const slugValue = useWatch({ control, name: SLUG });
+  const shortDescriptionValue =
+    useWatch({ control, name: SHORT_DESCRIPTION }) ?? '';
+  const descriptionValue = useWatch({ control, name: DESCRIPTION }) ?? '';
+  const careInstructionsValue =
+    useWatch({ control, name: CARE_INSTRUCTIONS }) ?? '';
+  const whatsappMessageValue =
+    useWatch({ control, name: WHATSAPP_MESSAGE }) ?? '';
+  const metaTitleValue = useWatch({ control, name: META_TITLE }) ?? '';
+  const metaDescriptionValue =
+    useWatch({ control, name: META_DESCRIPTION }) ?? '';
+  const priceValue = useWatch({ control, name: PRICE });
+  const compareAtPriceValue = useWatch({ control, name: COMPARE_AT_PRICE });
+  const isActiveValue = useWatch({ control, name: IS_ACTIVE });
+  // useFormState (not form.formState) so the React Compiler sees fresh state.
+  const { isDirty, errors } = useFormState({ control });
   useUnsavedChangesWarning(isDirty && !isPending);
 
   // Live preview of the storefront discount badge while typing.
@@ -172,12 +183,12 @@ const ProductForm = ({
   const isSlugChanged =
     isEdit && product && slugValue.trim() !== (product.slug ?? '');
 
-  const imageErrors = form.formState.errors.images;
+  const imageErrors = errors.images;
   const imageItemErrors = Array.isArray(imageErrors)
     ? imageErrors.map((error) => error?.message)
     : undefined;
 
-  const highlightErrors = form.formState.errors.highlights;
+  const highlightErrors = errors.highlights;
   const highlightItemErrors = Array.isArray(highlightErrors)
     ? highlightErrors.map((error) => error?.message)
     : undefined;

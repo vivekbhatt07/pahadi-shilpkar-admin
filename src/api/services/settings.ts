@@ -1,5 +1,9 @@
 import api from '@/api';
-import type { ApiResponse, StoreSettings, UpdateSettingsPayload } from '@/types/api';
+import type {
+  ApiResponse,
+  StoreSettings,
+  UpdateSettingsPayload,
+} from '@/types/api';
 
 export const settingsService = {
   /** All fields null + updatedAt null until first saved. Public. */

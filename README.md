@@ -1,4 +1,4 @@
-# link-vault-admin
+# pahadi-shilpkar-admin
 
 Admin panel for the **Pahadi Shilpkar** storefront: categories, products (with bulk actions and duplicate), combos, homepage banners, the inquiry inbox, testimonial moderation, customers, store settings, and the admin's own account.
 
@@ -15,9 +15,24 @@ cp .env.example .env   # set VITE_API_BASE_URL (see .env.development / .env.prod
 npm run dev            # http://localhost:5174
 ```
 
-The backend allows the storefront (`CLIENT_URL`) and this panel (`ADMIN_URL`) through CORS. Run this panel on `http://localhost:5174` locally, matching the backend's `ADMIN_URL`; the port is pinned in `vite.config.ts` so it never collides with `link-vault-fe` on 5173.
+The backend allows the storefront (`CLIENT_URL`) and this panel (`ADMIN_URL`) through CORS. Run this panel on `http://localhost:5174` locally, matching the backend's `ADMIN_URL`; the port is pinned in `vite.config.ts` so it never collides with `pahadi-shilpkar-fe` on 5173.
 
 Image fields upload through the backend (`POST /api/upload/images`, `/avatar`), which needs Cloudinary configured on the server. When it isn't (the endpoint answers 503), paste an image URL instead.
+
+## Scripts
+
+| Script               | What it does                                   |
+| -------------------- | ---------------------------------------------- |
+| `npm run dev`        | Vite dev server                                |
+| `npm run build`      | Type-check (`tsc -b`) + production build       |
+| `npm run lint`       | ESLint                                         |
+| `npm test`           | Vitest + Testing Library (jsdom), once         |
+| `npm run test:watch` | The same, re-running on change                 |
+| `npm run format`     | Prettier                                       |
+
+CI (`.github/workflows/ci.yml`) checks formatting and runs lint, tests and the build on every push and pull request to `main` and `develop`.
+
+Every page except sign-in loads on demand (`src/routes/pages.ts`); once signed in, the rest are fetched while the browser is idle, so navigating never waits. A page that crashes shows an error inside the layout — the sidebar keeps working — and after a deploy a stale tab is asked to reload.
 
 ## Structure
 

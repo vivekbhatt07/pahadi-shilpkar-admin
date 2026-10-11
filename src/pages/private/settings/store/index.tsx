@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+import { useForm, useFormState, useWatch } from 'react-hook-form';
 import { CheckCheck, Contact, MessageCircle, Share2 } from 'lucide-react';
 
 import FormActionBar from '@/components/custom/FormActionBar';
@@ -77,8 +77,11 @@ const StoreSettingsPage = () => {
     if (settings.data) form.reset(toFormData(settings.data));
   }, [settings.data, form]);
 
-  const templateValue = form.watch(WHATSAPP_MESSAGE_TEMPLATE) ?? '';
-  const isDirty = form.formState.isDirty;
+  const { control } = form;
+  const templateValue =
+    useWatch({ control, name: WHATSAPP_MESSAGE_TEMPLATE }) ?? '';
+  // useFormState (not form.formState) so the React Compiler sees fresh state.
+  const { isDirty } = useFormState({ control });
   useUnsavedChangesWarning(isDirty && !updateSettings.isPending);
 
   const handleSubmit = (data: TStoreSettingsFormData) => {

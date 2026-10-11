@@ -29,7 +29,12 @@ export const applyApiFieldErrors = <TFieldValues extends FieldValues>(
  */
 const isDeepEqual = (a: unknown, b: unknown): boolean => {
   if (a === b) return true;
-  if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) {
+  if (
+    typeof a !== 'object' ||
+    typeof b !== 'object' ||
+    a === null ||
+    b === null
+  ) {
     return false;
   }
   const aKeys = Object.keys(a as Record<string, unknown>);

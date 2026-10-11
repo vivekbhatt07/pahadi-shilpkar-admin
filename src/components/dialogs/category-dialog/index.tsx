@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { Loader2 } from 'lucide-react';
 
 import Callout from '@/components/custom/Callout';
@@ -79,9 +79,10 @@ const CategoryDialog = ({
     if (open) form.reset(toFormData(category, defaultParentId));
   }, [open, category, defaultParentId, form]);
 
-  const nameValue = form.watch(NAME);
-  const slugValue = form.watch(SLUG);
-  const descriptionValue = form.watch(DESCRIPTION) ?? '';
+  const { control } = form;
+  const nameValue = useWatch({ control, name: NAME });
+  const slugValue = useWatch({ control, name: SLUG });
+  const descriptionValue = useWatch({ control, name: DESCRIPTION }) ?? '';
   const isRenaming = isEdit && nameValue.trim() !== category?.name;
   const isSlugChanged = isEdit && slugValue.trim() !== (category?.slug ?? '');
 

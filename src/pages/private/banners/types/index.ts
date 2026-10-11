@@ -1,4 +1,4 @@
-import type z from 'zod';
+import type { z } from 'zod';
 import type { bannerFormSchema } from '../schemas';
 
 export type TBannerFormData = z.infer<typeof bannerFormSchema>;
