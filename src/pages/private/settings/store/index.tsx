@@ -222,7 +222,7 @@ const StoreSettingsPage = () => {
                     <FormControl>
                       <Input
                         type="email"
-                        placeholder="hello@pahadishilpkar.com"
+                        placeholder="hello@pahadishilpkar.in"
                         disabled={updateSettings.isPending}
                         {...field}
                       />
