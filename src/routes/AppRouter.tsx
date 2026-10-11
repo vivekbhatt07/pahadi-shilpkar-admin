@@ -5,29 +5,31 @@ import PageLayout from '@/components/layouts/PageLayout';
 import { Loader } from '@/components/ui/loader';
 import { ROUTES } from '@/constants/routes';
 import { useAuthBootstrap } from '@/hooks/auth';
-import BannersPage from '@/pages/private/banners';
-import CategoriesPage from '@/pages/private/categories';
-import CombosPage from '@/pages/private/combos';
-import CreateComboPage from '@/pages/private/combos/create';
-import ComboDetailPage from '@/pages/private/combos/detail';
-import EditComboPage from '@/pages/private/combos/edit';
-import DashboardPage from '@/pages/private/dashboard';
-import InquiriesPage from '@/pages/private/inquiries';
-import ProductsPage from '@/pages/private/products';
-import CreateProductPage from '@/pages/private/products/create';
-import ProductDetailPage from '@/pages/private/products/detail';
-import EditProductPage from '@/pages/private/products/edit';
-import SettingsLayout from '@/pages/private/settings/layout';
-import AppearancePage from '@/pages/private/settings/appearance';
-import ProfilePage from '@/pages/private/settings/profile';
-import SecurityPage from '@/pages/private/settings/security';
-import StoreSettingsPage from '@/pages/private/settings/store';
-import TestimonialsPage from '@/pages/private/testimonials';
-import CustomersPage from '@/pages/private/customers';
-import ForgotPasswordPage from '@/pages/public/auth/forgot-password';
 import SignInPage from '@/pages/public/auth/sign-in';
 import NotFoundPage from '@/pages/public/errors/not-found';
 
+import {
+  AppearancePage,
+  BannersPage,
+  CategoriesPage,
+  ComboDetailPage,
+  CombosPage,
+  CreateComboPage,
+  CreateProductPage,
+  CustomersPage,
+  DashboardPage,
+  EditComboPage,
+  EditProductPage,
+  ForgotPasswordPage,
+  InquiriesPage,
+  ProductDetailPage,
+  ProductsPage,
+  ProfilePage,
+  SecurityPage,
+  SettingsLayout,
+  StoreSettingsPage,
+  TestimonialsPage,
+} from './pages';
 import ProtectedRoute from './ProtectedRoute';
 import PublicOnlyRoute from './PublicOnlyRoute';
 

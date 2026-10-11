@@ -1,4 +1,4 @@
-import z from 'zod';
+import { z } from 'zod';
 
 import { VALIDATION_MESSAGES } from '@/constants/messages/shared';
 import { SIGN_IN_FORM_FIELD_NAMES } from '../constants';

@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import path from "path";
 import { defineConfig } from "vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
@@ -17,9 +18,15 @@ export default defineConfig({
     },
   },
   server: {
-    // Pinned so it never collides with link-vault-fe on 5173. The backend's
+    // Pinned so it never collides with pahadi-shilpkar-fe on 5173. The backend's
     // ADMIN_URL CORS origin expects http://localhost:5174.
     port: 5174,
     strictPort: true,
+  },
+  test: {
+    environment: "jsdom",
+    setupFiles: ["./src/test/setup.ts"],
+    // Tests never style-check, and Tailwind would compile the whole sheet
+    css: false,
   },
 });

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useFormState, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ShieldCheck, UserRound } from 'lucide-react';
 
@@ -55,12 +55,14 @@ const ProfilePage = () => {
     form.reset(toFormData(user));
   }, [user, form]);
 
-  const bioValue = form.watch(BIO) ?? '';
-  const avatarValue = form.watch(AVATAR);
-  const firstNameValue = form.watch(FIRST_NAME);
-  const lastNameValue = form.watch(LAST_NAME);
-  const emailValue = form.watch(EMAIL);
-  const isDirty = form.formState.isDirty;
+  const { control } = form;
+  const bioValue = useWatch({ control, name: BIO }) ?? '';
+  const avatarValue = useWatch({ control, name: AVATAR });
+  const firstNameValue = useWatch({ control, name: FIRST_NAME });
+  const lastNameValue = useWatch({ control, name: LAST_NAME });
+  const emailValue = useWatch({ control, name: EMAIL });
+  // useFormState (not form.formState) so the React Compiler sees fresh state.
+  const { isDirty } = useFormState({ control });
   useUnsavedChangesWarning(isDirty && !updateProfile.isPending);
 
   // The identity card previews unsaved edits live.
