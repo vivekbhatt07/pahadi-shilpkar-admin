@@ -14,8 +14,10 @@ export const useUpdateSettings = () => {
     onSuccess: (response) => {
       toast.success(response.message);
       queryClient.setQueryData(QUERY_KEYS.SETTINGS.GET, response.data);
-      // Every product's derived whatsappUrl depends on whatsappNumber.
+      // Every product's and combo's derived whatsappUrl depends on
+      // whatsappNumber, and their delivery on the store default.
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PRODUCTS.ALL });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.COMBOS.ALL });
     },
   });
 };

@@ -106,6 +106,16 @@ export interface PurchaseLink {
   url: string;
 }
 
+/** Whether the price covers delivery: INCLUDED = free delivery; EXTRA = charged on top. */
+export type DeliveryCharge = 'INCLUDED' | 'EXTRA';
+
+/** What shoppers are told about delivery next to a price. */
+export interface Delivery {
+  charge: DeliveryCharge;
+  /** EXTRA only; null = quoted with the order (it depends on the address). */
+  fee: number | null;
+}
+
 /**
  * A colour the piece is made in ("Geru red"). It describes this one product —
  * it is not a variant a shopper picks.
@@ -150,6 +160,15 @@ export interface Product {
   compareAtPrice: number | null;
   /** Read-only, derived from compareAtPrice. */
   discountPercentage: number | null;
+  /** This product's own setting; null = follows the store default. */
+  deliveryCharge: DeliveryCharge | null;
+  /** EXTRA only; null = quoted with the order. */
+  deliveryFee: number | null;
+  /**
+   * Read-only: what shoppers see — the product's own setting, else the store
+   * default; null when neither says anything.
+   */
+  delivery: Delivery | null;
   images: string[];
   videoUrl: string | null;
   material: string | null;
@@ -239,6 +258,12 @@ export interface Combo {
   savings: number | null;
   /** Read-only, derived from itemsTotal; null unless cheaper. */
   discountPercentage: number | null;
+  /** The combo's own setting, never its products'; null = follows the store default. */
+  deliveryCharge: DeliveryCharge | null;
+  /** EXTRA only; null = quoted with the order. */
+  deliveryFee: number | null;
+  /** Read-only: what shoppers see, resolved as on products. */
+  delivery: Delivery | null;
   /** Read-only: the least available item wins; an inactive product counts as out of stock. */
   availability: ProductAvailability;
   /** Read-only: total units across items. */
@@ -354,6 +379,13 @@ export interface StoreSettings {
   whatsappNumber: string | null;
   /** Placeholders: {{productName}} {{price}} {{productUrl}} */
   whatsappMessageTemplate: string | null;
+  /**
+   * The default for every product and combo without its own setting;
+   * null = prices say nothing about delivery.
+   */
+  deliveryCharge: DeliveryCharge | null;
+  /** EXTRA only; null = quoted with the order. */
+  deliveryFee: number | null;
   contactEmail: string | null;
   contactPhone: string | null;
   instagramUrl: string | null;
@@ -566,8 +598,19 @@ export interface ProductMeasurementsPayload {
   note?: string | null;
 }
 
+/**
+ * The delivery pair on products, combos and Store settings. A fee needs
+ * EXTRA (judged against the saved charge when only the fee is sent), and
+ * moving away from EXTRA drops the saved fee. `deliveryCharge: null` hands a
+ * product or combo back to the store default.
+ */
+export interface DeliveryPayload {
+  deliveryCharge?: DeliveryCharge | null;
+  deliveryFee?: number | null;
+}
+
 /** `dimensions` is derived — sending it is a validation error. */
-export interface CreateProductPayload {
+export interface CreateProductPayload extends DeliveryPayload {
   name: string;
   price: number;
   categoryId: string;
@@ -634,7 +677,7 @@ export interface ComboItemPayload {
   quantity?: number;
 }
 
-export interface CreateComboPayload {
+export interface CreateComboPayload extends DeliveryPayload {
   name: string;
   price: number;
   items: ComboItemPayload[];
@@ -654,7 +697,7 @@ export interface UpdateComboPayload extends Partial<CreateComboPayload> {
   isActive?: boolean;
 }
 
-export interface UpdateSettingsPayload {
+export interface UpdateSettingsPayload extends DeliveryPayload {
   whatsappNumber?: string | null;
   whatsappMessageTemplate?: string | null;
   contactEmail?: string | null;

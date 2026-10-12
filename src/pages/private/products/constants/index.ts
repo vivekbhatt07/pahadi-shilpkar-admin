@@ -1,4 +1,5 @@
 import type {
+  DeliveryCharge,
   MeasurementUnit,
   ProductAvailability,
   ProductShape,
@@ -16,6 +17,9 @@ export const PRODUCT_FORM_FIELD_NAMES = {
   HIGHLIGHTS: 'highlights',
   PRICE: 'price',
   COMPARE_AT_PRICE: 'compareAtPrice',
+  /** Null = follows the store default. */
+  DELIVERY_CHARGE: 'deliveryCharge',
+  DELIVERY_FEE: 'deliveryFee',
   IMAGES: 'images',
   VIDEO_URL: 'videoUrl',
   MATERIAL: 'material',
@@ -63,9 +67,32 @@ export const PRODUCT_LIMITS = {
   WHATSAPP_MESSAGE_MAX: 500,
   PURCHASE_LINKS_MAX: 10,
   PURCHASE_LINK_LABEL_MAX: 50,
+  /** Also the combo and store default limit. */
+  DELIVERY_FEE_MAX: 100000,
   META_TITLE_MAX: 70,
   META_DESCRIPTION_MAX: 160,
 } as const;
+
+/**
+ * Whether a price covers delivery. Each form adds its own "not set" choice:
+ * a product or combo then follows the store default.
+ */
+export const DELIVERY_CHARGE_OPTIONS: {
+  value: DeliveryCharge;
+  label: string;
+  description: string;
+}[] = [
+  {
+    value: 'INCLUDED',
+    label: 'Free delivery',
+    description: 'The price includes delivery.',
+  },
+  {
+    value: 'EXTRA',
+    label: 'Charged extra',
+    description: 'Delivery is paid on top of the price.',
+  },
+];
 
 export const AVAILABILITY_OPTIONS: {
   value: ProductAvailability;

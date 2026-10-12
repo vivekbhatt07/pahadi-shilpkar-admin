@@ -1,7 +1,13 @@
 import { useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, useFormState, useWatch } from 'react-hook-form';
-import { CheckCheck, Contact, MessageCircle, Share2 } from 'lucide-react';
+import {
+  CheckCheck,
+  Contact,
+  MessageCircle,
+  Share2,
+  Truck,
+} from 'lucide-react';
 
 import FormActionBar from '@/components/custom/FormActionBar';
 import {
@@ -22,6 +28,7 @@ import { useSettings, useUpdateSettings } from '@/hooks/settings';
 import { useUnsavedChangesWarning } from '@/hooks/useUnsavedChangesWarning';
 import type { StoreSettings, UpdateSettingsPayload } from '@/types/api';
 
+import DeliveryChargeField from '../../products/layouts/DeliveryChargeField';
 import SettingsSection from '../components/SettingsSection';
 import {
   DEFAULT_WHATSAPP_TEMPLATE,
@@ -46,6 +53,8 @@ const toFormData = (
 ): TStoreSettingsFormData => ({
   whatsappNumber: settings?.whatsappNumber ?? '',
   whatsappMessageTemplate: settings?.whatsappMessageTemplate ?? '',
+  deliveryCharge: settings?.deliveryCharge ?? null,
+  deliveryFee: settings?.deliveryFee ?? null,
   contactEmail: settings?.contactEmail ?? '',
   contactPhone: settings?.contactPhone ?? '',
   instagramUrl: settings?.instagramUrl ?? '',
@@ -95,6 +104,13 @@ const StoreSettingsPage = () => {
       ...(changed.whatsappMessageTemplate !== undefined && {
         whatsappMessageTemplate: changed.whatsappMessageTemplate || null,
       }),
+      // The form clears the fee whenever delivery stops being EXTRA
+      ...(changed.deliveryCharge !== undefined && {
+        deliveryCharge: changed.deliveryCharge,
+      }),
+      ...(changed.deliveryFee !== undefined && {
+        deliveryFee: changed.deliveryFee,
+      }),
       ...(changed.contactEmail !== undefined && {
         contactEmail: changed.contactEmail || null,
       }),
@@ -121,6 +137,7 @@ const StoreSettingsPage = () => {
     return (
       <div className="flex flex-col gap-6" role="status" aria-label="Loading">
         <Skeleton className="h-72 w-full rounded-xl" />
+        <Skeleton className="h-40 w-full rounded-xl" />
         <Skeleton className="h-40 w-full rounded-xl" />
         <Skeleton className="h-56 w-full rounded-xl" />
       </div>
@@ -208,6 +225,17 @@ const StoreSettingsPage = () => {
           </SettingsSection>
 
           <SettingsSection
+            icon={<Truck />}
+            title="Delivery charges"
+            description="Shown next to the price of every product and combo that doesn't set its own."
+          >
+            <DeliveryChargeField
+              scope="store"
+              disabled={updateSettings.isPending}
+            />
+          </SettingsSection>
+
+          <SettingsSection
             icon={<Contact />}
             title="Contact details"
             description="Shown on the storefront's contact page."
@@ -222,7 +250,7 @@ const StoreSettingsPage = () => {
                     <FormControl>
                       <Input
                         type="email"
-                        placeholder="hello@pahadishilpkar.com"
+                        placeholder="hello@pahadishilpkar.in"
                         disabled={updateSettings.isPending}
                         {...field}
                       />

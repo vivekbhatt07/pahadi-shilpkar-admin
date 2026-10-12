@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  formatDelivery,
   formatPrice,
   getDisplayName,
   getInitials,
@@ -11,6 +12,27 @@ describe('formatPrice', () => {
   it('shows exact rupees and paise with Indian digit grouping', () => {
     expect(formatPrice(125000)).toBe('₹1,25,000.00');
     expect(formatPrice(1299.5)).toBe('₹1,299.50');
+  });
+});
+
+describe('formatDelivery', () => {
+  it('words delivery the way the storefront shows it', () => {
+    expect(formatDelivery({ charge: 'INCLUDED', fee: null })).toBe(
+      'Free delivery',
+    );
+    expect(formatDelivery({ charge: 'EXTRA', fee: null })).toBe(
+      'Excluding delivery charges',
+    );
+  });
+
+  it('drops the paise from a whole-rupee fee, as shoppers see it', () => {
+    expect(formatDelivery({ charge: 'EXTRA', fee: 80 })).toBe('+ ₹80 delivery');
+    expect(formatDelivery({ charge: 'EXTRA', fee: 1250 })).toBe(
+      '+ ₹1,250 delivery',
+    );
+    expect(formatDelivery({ charge: 'EXTRA', fee: 79.5 })).toBe(
+      '+ ₹79.50 delivery',
+    );
   });
 });
 

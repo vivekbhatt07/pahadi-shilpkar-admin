@@ -41,6 +41,7 @@ import {
   AVAILABILITY_LABELS,
   availabilityVariant,
 } from '../../products/helpers';
+import DeliveryChargeField from '../../products/layouts/DeliveryChargeField';
 import PurchaseLinksField from '../../products/layouts/PurchaseLinksField';
 import {
   COMBO_DEACTIVATE_WARNING,
@@ -527,6 +528,11 @@ const ComboForm = ({
                   The availability shown to buyers is the least available
                   item's.
                 </p>
+
+                {/* Its own setting, not its products' — a combo ships as one parcel */}
+                <div className="border-t border-stone-100 pt-4 dark:border-stone-800">
+                  <DeliveryChargeField scope="listing" disabled={isPending} />
+                </div>
               </CardContent>
             </Card>
 

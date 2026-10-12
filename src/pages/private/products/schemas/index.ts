@@ -4,6 +4,7 @@ import { VALIDATION_MESSAGES } from '@/constants/messages/shared';
 import {
   HEX_COLOR_REGEX,
   MEASUREMENT_REGEX,
+  MONEY_REGEX,
   SKU_REGEX,
   SLUG_REGEX,
 } from '@/constants/regex';
@@ -14,7 +15,7 @@ import {
   SIZE_LABELS,
 } from '../constants';
 
-const { PRODUCT, URL, SLUG } = VALIDATION_MESSAGES;
+const { PRODUCT, DELIVERY, URL, SLUG } = VALIDATION_MESSAGES;
 
 const optionalUrl = (message: string = URL.INVALID) =>
   z
@@ -139,6 +140,24 @@ const measurementsSchema = z
     }
   });
 
+/**
+ * Shared with the combo and Store settings forms. `null` = not set — a
+ * product or combo then follows the store default.
+ */
+export const deliveryChargeSchema = z.enum(['INCLUDED', 'EXTRA']).nullable();
+
+/** Only kept while delivery is charged extra; `null` = quoted with the order. */
+export const deliveryFeeSchema = z
+  .number({ error: DELIVERY.FEE_INVALID })
+  .refine(
+    (fee) =>
+      fee > 0 &&
+      fee <= PRODUCT_LIMITS.DELIVERY_FEE_MAX &&
+      MONEY_REGEX.test(String(fee)),
+    DELIVERY.FEE_INVALID,
+  )
+  .nullable();
+
 /** Shared with the combo form. */
 export const purchaseLinkSchema = z.object({
   platform: z.enum([
@@ -208,6 +227,8 @@ export const productFormSchema = z
       .number()
       .positive(PRODUCT.COMPARE_AT_PRICE_POSITIVE)
       .nullable(),
+    [PRODUCT_FORM_FIELD_NAMES.DELIVERY_CHARGE]: deliveryChargeSchema,
+    [PRODUCT_FORM_FIELD_NAMES.DELIVERY_FEE]: deliveryFeeSchema,
     [PRODUCT_FORM_FIELD_NAMES.IMAGES]: z
       .array(z.url(URL.INVALID))
       .max(PRODUCT_LIMITS.IMAGES_MAX, PRODUCT.IMAGES_MAX),

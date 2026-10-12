@@ -21,6 +21,8 @@ const DEFAULT_VALUES: TProductFormData = {
   highlights: [],
   price: Number.NaN,
   compareAtPrice: null,
+  deliveryCharge: null,
+  deliveryFee: null,
   images: [],
   videoUrl: '',
   material: '',
@@ -68,6 +70,12 @@ const CreateProductPage = () => {
         ...(data.compareAtPrice !== null && {
           compareAtPrice: data.compareAtPrice,
         }),
+        // Left out, the product follows the store default
+        ...(data.deliveryCharge !== null && {
+          deliveryCharge: data.deliveryCharge,
+        }),
+        ...(data.deliveryCharge === 'EXTRA' &&
+          data.deliveryFee !== null && { deliveryFee: data.deliveryFee }),
         images: data.images,
         ...(data.videoUrl && { videoUrl: data.videoUrl }),
         ...(data.material && { material: data.material }),

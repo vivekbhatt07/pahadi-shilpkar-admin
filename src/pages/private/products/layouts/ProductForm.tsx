@@ -53,6 +53,7 @@ import {
 import { productFormSchema } from '../schemas';
 import type { TProductFormData, TProductFormMode } from '../types';
 import ColorsField from './ColorsField';
+import DeliveryChargeField from './DeliveryChargeField';
 import HighlightsField from './HighlightsField';
 import MeasurementsField from './MeasurementsField';
 import PurchaseLinksField from './PurchaseLinksField';
@@ -689,6 +690,8 @@ const ProductForm = ({
                     </FormItem>
                   )}
                 />
+
+                <DeliveryChargeField scope="listing" disabled={isPending} />
 
                 <FormField
                   control={form.control}

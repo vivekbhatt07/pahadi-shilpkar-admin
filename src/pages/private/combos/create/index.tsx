@@ -18,6 +18,8 @@ const buildDefaultValues = (product?: ComboProduct): TComboFormData => ({
   shortDescription: '',
   description: '',
   price: Number.NaN,
+  deliveryCharge: null,
+  deliveryFee: null,
   images: [],
   items: product ? [{ productId: product.id, quantity: 1, product }] : [],
   isFeatured: false,
@@ -47,6 +49,12 @@ const CreateComboPage = () => {
           productId,
           quantity,
         })),
+        // Left out, the combo follows the store default
+        ...(data.deliveryCharge !== null && {
+          deliveryCharge: data.deliveryCharge,
+        }),
+        ...(data.deliveryCharge === 'EXTRA' &&
+          data.deliveryFee !== null && { deliveryFee: data.deliveryFee }),
         ...(data.slug && { slug: data.slug }),
         ...(data.shortDescription && {
           shortDescription: data.shortDescription,

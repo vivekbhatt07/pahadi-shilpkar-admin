@@ -4,7 +4,11 @@ import { VALIDATION_MESSAGES } from '@/constants/messages/shared';
 import { SLUG_REGEX } from '@/constants/regex';
 import type { ComboProduct } from '@/types/api';
 import { PRODUCT_LIMITS } from '../../products/constants';
-import { purchaseLinkSchema } from '../../products/schemas';
+import {
+  deliveryChargeSchema,
+  deliveryFeeSchema,
+  purchaseLinkSchema,
+} from '../../products/schemas';
 import { COMBO_FORM_FIELD_NAMES, COMBO_LIMITS } from '../constants';
 
 const { COMBO, PRODUCT, URL, SLUG } = VALIDATION_MESSAGES;
@@ -42,6 +46,8 @@ export const comboFormSchema = z.object({
   [COMBO_FORM_FIELD_NAMES.PRICE]: z
     .number({ error: PRODUCT.PRICE_REQUIRED })
     .positive(PRODUCT.PRICE_POSITIVE),
+  [COMBO_FORM_FIELD_NAMES.DELIVERY_CHARGE]: deliveryChargeSchema,
+  [COMBO_FORM_FIELD_NAMES.DELIVERY_FEE]: deliveryFeeSchema,
   [COMBO_FORM_FIELD_NAMES.IMAGES]: z
     .array(z.url(URL.INVALID))
     .max(PRODUCT_LIMITS.IMAGES_MAX, PRODUCT.IMAGES_MAX),
