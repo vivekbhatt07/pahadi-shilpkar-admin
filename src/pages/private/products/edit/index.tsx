@@ -28,6 +28,8 @@ const toFormData = (product: Product): TProductFormData => ({
   highlights: product.highlights,
   price: product.price,
   compareAtPrice: product.compareAtPrice,
+  deliveryCharge: product.deliveryCharge,
+  deliveryFee: product.deliveryFee,
   images: product.images,
   videoUrl: product.videoUrl ?? '',
   material: product.material ?? '',
@@ -133,6 +135,14 @@ const EditProductPage = () => {
       ...(changed.price !== undefined && { price: changed.price }),
       ...(changed.compareAtPrice !== undefined && {
         compareAtPrice: changed.compareAtPrice,
+      }),
+      // null charge = back to the store default. The form clears the fee
+      // whenever delivery stops being EXTRA, so the pair never conflicts.
+      ...(changed.deliveryCharge !== undefined && {
+        deliveryCharge: changed.deliveryCharge,
+      }),
+      ...(changed.deliveryFee !== undefined && {
+        deliveryFee: changed.deliveryFee,
       }),
       ...(changed.images !== undefined && { images: changed.images }),
       ...(changed.videoUrl !== undefined && {

@@ -21,6 +21,8 @@ const toFormData = (combo: Combo): TComboFormData => ({
   shortDescription: combo.shortDescription ?? '',
   description: combo.description ?? '',
   price: combo.price,
+  deliveryCharge: combo.deliveryCharge,
+  deliveryFee: combo.deliveryFee,
   images: combo.images,
   items: combo.items.map((item) => ({
     productId: item.productId,
@@ -69,6 +71,14 @@ const EditComboPage = () => {
         description: changed.description || null,
       }),
       ...(changed.price !== undefined && { price: changed.price }),
+      // null charge = back to the store default. The form clears the fee
+      // whenever delivery stops being EXTRA, so the pair never conflicts.
+      ...(changed.deliveryCharge !== undefined && {
+        deliveryCharge: changed.deliveryCharge,
+      }),
+      ...(changed.deliveryFee !== undefined && {
+        deliveryFee: changed.deliveryFee,
+      }),
       ...(changed.images !== undefined && { images: changed.images }),
       ...(changed.items !== undefined && {
         items: changed.items.map(({ productId, quantity }) => ({

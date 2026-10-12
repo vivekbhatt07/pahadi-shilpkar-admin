@@ -12,3 +12,5 @@ export const WHATSAPP_NUMBER_REGEX = /^\+?[0-9][0-9\s-]{6,18}[0-9]$/;
 export const HEX_COLOR_REGEX = /^#(?:[0-9a-f]{3}){1,2}$/i;
 /** A product size: 12.5, not 12.555. */
 export const MEASUREMENT_REGEX = /^\d+(?:\.\d{1,2})?$/;
+/** Rupees and paise: 80 or 79.5, not 79.555. */
+export const MONEY_REGEX = /^\d+(?:\.\d{1,2})?$/;

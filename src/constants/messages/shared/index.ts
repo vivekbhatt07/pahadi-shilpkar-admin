@@ -99,6 +99,10 @@ export const VALIDATION_MESSAGES = {
     QUANTITY_INTEGER: 'Quantity must be a whole number',
     QUANTITY_RANGE: 'Quantity must be between 1 and 99',
   },
+  DELIVERY: {
+    FEE_INVALID:
+      'Enter an amount above 0 and up to 1,00,000, with at most 2 decimals',
+  },
   SETTINGS: {
     WHATSAPP_NUMBER_INVALID: 'Please enter a valid phone number',
     TEMPLATE_MAX: 'Message template must be 500 characters or fewer',

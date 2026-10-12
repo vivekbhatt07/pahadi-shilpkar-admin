@@ -4,6 +4,9 @@ export const COMBO_FORM_FIELD_NAMES = {
   SHORT_DESCRIPTION: 'shortDescription',
   DESCRIPTION: 'description',
   PRICE: 'price',
+  /** Null = follows the store default. */
+  DELIVERY_CHARGE: 'deliveryCharge',
+  DELIVERY_FEE: 'deliveryFee',
   IMAGES: 'images',
   ITEMS: 'items',
   IS_FEATURED: 'isFeatured',

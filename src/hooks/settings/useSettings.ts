@@ -7,6 +7,8 @@ import type { StoreSettings } from '@/types/api';
 const EMPTY_SETTINGS: StoreSettings = {
   whatsappNumber: null,
   whatsappMessageTemplate: null,
+  deliveryCharge: null,
+  deliveryFee: null,
   contactEmail: null,
   contactPhone: null,
   instagramUrl: null,

@@ -3,6 +3,10 @@ import { z } from 'zod';
 import { VALIDATION_MESSAGES } from '@/constants/messages/shared';
 import { WHATSAPP_NUMBER_REGEX } from '@/constants/regex';
 import {
+  deliveryChargeSchema,
+  deliveryFeeSchema,
+} from '../../../products/schemas';
+import {
   STORE_SETTINGS_FORM_FIELD_NAMES,
   STORE_SETTINGS_LIMITS,
 } from '../constants';
@@ -42,6 +46,8 @@ export const storeSettingsFormSchema = z.object({
       STORE_SETTINGS_LIMITS.WHATSAPP_MESSAGE_TEMPLATE_MAX,
       SETTINGS.TEMPLATE_MAX,
     ),
+  [STORE_SETTINGS_FORM_FIELD_NAMES.DELIVERY_CHARGE]: deliveryChargeSchema,
+  [STORE_SETTINGS_FORM_FIELD_NAMES.DELIVERY_FEE]: deliveryFeeSchema,
   [STORE_SETTINGS_FORM_FIELD_NAMES.CONTACT_EMAIL]: optionalEmail,
   [STORE_SETTINGS_FORM_FIELD_NAMES.CONTACT_PHONE]: z
     .string()

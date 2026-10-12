@@ -16,6 +16,7 @@ import {
   Star,
   Trash2,
   TrendingUp,
+  Truck,
 } from 'lucide-react';
 
 import Callout from '@/components/custom/Callout';
@@ -28,7 +29,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ROUTES } from '@/constants/routes';
-import { formatDateTime, formatPrice } from '@/helpers/format';
+import { formatDateTime, formatDelivery, formatPrice } from '@/helpers/format';
 import {
   isProductInCombosError,
   useDeleteProduct,
@@ -269,6 +270,19 @@ const ProductDetailPage = () => {
                     <FolderTree className="size-4 text-stone-400" />
                     {item.category.name}
                   </Link>
+                </DetailField>
+                <DetailField label="Delivery">
+                  <span className="flex flex-wrap items-center gap-x-1.5 font-medium text-stone-900 dark:text-stone-50">
+                    <Truck className="size-4 text-stone-400" />
+                    {item.delivery
+                      ? formatDelivery(item.delivery)
+                      : 'Not mentioned'}
+                    {item.deliveryCharge === null && (
+                      <span className="text-xs font-normal text-stone-400 dark:text-stone-500">
+                        · store default
+                      </span>
+                    )}
+                  </span>
                 </DetailField>
                 <DetailField label="Rating">
                   <span className="flex items-center gap-1.5">

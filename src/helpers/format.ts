@@ -1,6 +1,6 @@
 import dayjs from 'dayjs';
 
-import type { User } from '@/types/api';
+import type { Delivery, User } from '@/types/api';
 
 const priceFormatter = new Intl.NumberFormat('en-IN', {
   style: 'currency',
@@ -8,7 +8,26 @@ const priceFormatter = new Intl.NumberFormat('en-IN', {
   maximumFractionDigits: 2,
 });
 
+const wholeRupeeFormatter = new Intl.NumberFormat('en-IN', {
+  style: 'currency',
+  currency: 'INR',
+  maximumFractionDigits: 0,
+});
+
 export const formatPrice = (price: number) => priceFormatter.format(price);
+
+/**
+ * What shoppers see next to the price, worded as the storefront words it —
+ * which drops the paise from whole rupees: "+ ₹80 delivery".
+ */
+export const formatDelivery = ({ charge, fee }: Delivery) => {
+  if (charge === 'INCLUDED') return 'Free delivery';
+  if (fee === null) return 'Excluding delivery charges';
+  const amount = Number.isInteger(fee)
+    ? wholeRupeeFormatter.format(fee)
+    : formatPrice(fee);
+  return `+ ${amount} delivery`;
+};
 
 export const formatDate = (iso: string) => dayjs(iso).format('MMM D, YYYY');
 
