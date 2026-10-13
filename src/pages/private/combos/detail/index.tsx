@@ -33,7 +33,13 @@ import {
 import ProductGallery from '../../products/detail/layouts/ProductGallery';
 import ListingTestimonials from '../../testimonials/layouts/ListingTestimonials';
 import { COMBO_HIDDEN_BY_PRODUCT_WARNING } from '../constants';
-import { comboImages, hasInactiveProduct } from '../helpers';
+import {
+  comboImages,
+  comboItemImage,
+  comboItemKey,
+  comboItemPrice,
+  hasInactiveItem,
+} from '../helpers';
 
 const DetailField = ({
   label,
@@ -97,7 +103,7 @@ const ComboDetailPage = () => {
   }
 
   const item = combo.data;
-  const blockedByProduct = hasInactiveProduct(item);
+  const blockedByProduct = hasInactiveItem(item);
 
   const handleDelete = () => {
     deleteCombo.mutate(item.id, {
@@ -256,39 +262,57 @@ const ComboDetailPage = () => {
             </CardHeader>
             <CardContent className="px-0 sm:px-0 md:px-0">
               <ul className="divide-y divide-stone-100 dark:divide-stone-800">
-                {item.items.map(({ product, quantity }) => (
-                  <li key={product.id}>
-                    <Link
-                      to={ROUTES.PRIVATE.PRODUCTS.DETAIL(product.slug)}
-                      className="group flex items-center gap-3 px-3 py-3 transition-colors hover:bg-stone-50 sm:px-4 md:px-6 dark:hover:bg-stone-800/40"
-                    >
-                      <ImageThumb
-                        src={product.images[0]}
-                        alt=""
-                        className="size-10"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <p className="truncate text-sm font-medium text-stone-900 group-hover:text-accent-600 dark:text-stone-50 dark:group-hover:text-accent-400">
-                            {product.name}
-                          </p>
-                          {!product.isActive && (
-                            <Badge variant="secondary" className="shrink-0">
-                              Inactive
-                            </Badge>
+                {item.items.map((comboItem) => {
+                  const { product, variant, quantity } = comboItem;
+                  const price = comboItemPrice(comboItem);
+                  return (
+                    <li key={comboItemKey(product.id, variant?.id ?? null)}>
+                      <Link
+                        to={ROUTES.PRIVATE.PRODUCTS.DETAIL(product.slug)}
+                        className="group flex items-center gap-3 px-3 py-3 transition-colors hover:bg-stone-50 sm:px-4 md:px-6 dark:hover:bg-stone-800/40"
+                      >
+                        <ImageThumb
+                          src={comboItemImage(comboItem)}
+                          alt=""
+                          className="size-10"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <p className="truncate text-sm font-medium text-stone-900 group-hover:text-accent-600 dark:text-stone-50 dark:group-hover:text-accent-400">
+                              {product.name}
+                            </p>
+                            {!product.isActive && (
+                              <Badge variant="secondary" className="shrink-0">
+                                Inactive
+                              </Badge>
+                            )}
+                            {variant && !variant.isActive && (
+                              <Badge variant="secondary" className="shrink-0">
+                                Variant hidden
+                              </Badge>
+                            )}
+                          </div>
+                          {variant && (
+                            <p className="truncate text-xs text-stone-600 dark:text-stone-300">
+                              {variant.title}
+                            </p>
                           )}
+                          <p className="mt-0.5 text-xs tabular-nums text-stone-400 dark:text-stone-500">
+                            {quantity} × {formatPrice(price)} ·{' '}
+                            {
+                              AVAILABILITY_LABELS[
+                                (variant ?? product).availability
+                              ]
+                            }
+                          </p>
                         </div>
-                        <p className="mt-0.5 text-xs tabular-nums text-stone-400 dark:text-stone-500">
-                          {quantity} × {formatPrice(product.price)} ·{' '}
-                          {AVAILABILITY_LABELS[product.availability]}
-                        </p>
-                      </div>
-                      <span className="shrink-0 text-sm font-medium tabular-nums text-stone-900 dark:text-stone-50">
-                        {formatPrice(product.price * quantity)}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
+                        <span className="shrink-0 text-sm font-medium tabular-nums text-stone-900 dark:text-stone-50">
+                          {formatPrice(price * quantity)}
+                        </span>
+                      </Link>
+                    </li>
+                  );
+                })}
               </ul>
             </CardContent>
           </Card>

@@ -26,8 +26,10 @@ const toFormData = (combo: Combo): TComboFormData => ({
   images: combo.images,
   items: combo.items.map((item) => ({
     productId: item.productId,
+    variantId: item.variantId,
     quantity: item.quantity,
     product: item.product,
+    variant: item.variant,
   })),
   isFeatured: combo.isFeatured,
   isActive: combo.isActive,
@@ -81,8 +83,9 @@ const EditComboPage = () => {
       }),
       ...(changed.images !== undefined && { images: changed.images }),
       ...(changed.items !== undefined && {
-        items: changed.items.map(({ productId, quantity }) => ({
+        items: changed.items.map(({ productId, variantId, quantity }) => ({
           productId,
+          ...(variantId && { variantId }),
           quantity,
         })),
       }),

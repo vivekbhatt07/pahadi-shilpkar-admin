@@ -511,15 +511,13 @@ const ComboForm = ({
                   </Callout>
                 )}
 
-                {summary.inactiveProducts.length > 0 && (
+                {summary.inactiveItems.length > 0 && (
                   <Callout variant="warning">
                     Hidden from the storefront while{' '}
                     <span className="font-medium">
-                      {summary.inactiveProducts
-                        .map((product) => product.name)
-                        .join(', ')}
+                      {summary.inactiveItems.join(', ')}
                     </span>{' '}
-                    {summary.inactiveProducts.length === 1 ? 'is' : 'are'}{' '}
+                    {summary.inactiveItems.length === 1 ? 'is' : 'are'}{' '}
                     inactive. {COMBO_HIDDEN_BY_PRODUCT_WARNING}
                   </Callout>
                 )}

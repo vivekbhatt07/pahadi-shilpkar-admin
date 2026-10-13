@@ -18,6 +18,12 @@ import { DEACTIVATE_WARNING } from '../constants';
 import { toMeasurementsFormValue, toMeasurementsPayload } from '../helpers';
 import ProductForm from '../layouts/ProductForm';
 import type { TProductFormData } from '../types';
+import { toVariantsFormValue, toVariantsPayload } from '../variants';
+
+const toVariantsFields = (product: Product) => {
+  const { options, rows } = toVariantsFormValue(product);
+  return { variantOptions: options, variants: rows };
+};
 
 const toFormData = (product: Product): TProductFormData => ({
   name: product.name,
@@ -54,6 +60,7 @@ const toFormData = (product: Product): TProductFormData => ({
   metaTitle: product.metaTitle ?? '',
   metaDescription: product.metaDescription ?? '',
   categoryId: product.categoryId,
+  ...toVariantsFields(product),
 });
 
 /**
@@ -120,6 +127,14 @@ const EditProductPage = () => {
     }
 
     const payload: UpdateProductPayload = {
+      // Sent together and whole whenever either changed — a stored variant
+      // left out is deleted
+      ...((changed.variantOptions !== undefined ||
+        changed.variants !== undefined) &&
+        toVariantsPayload({
+          options: data.variantOptions,
+          rows: data.variants,
+        })),
       ...(changed.name !== undefined && { name: changed.name }),
       ...(changed.slug !== undefined && changed.slug && { slug: changed.slug }),
       ...(changed.sku !== undefined && { sku: changed.sku || null }),

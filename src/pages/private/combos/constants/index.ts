@@ -37,7 +37,7 @@ export const COMBO_DEACTIVATE_WARNING =
   'Inactive combos are hidden from the storefront, but stay visible here and can be reactivated at any time.';
 
 export const COMBO_HIDDEN_BY_PRODUCT_WARNING =
-  'A combo is only shown on the storefront while every product in it is active.';
+  'A combo is only shown on the storefront while every product (and variant) in it is active.';
 
 /** Query-string keys for the combo list (server-side filters only). */
 export const COMBO_LIST_SEARCH_PARAMS = {

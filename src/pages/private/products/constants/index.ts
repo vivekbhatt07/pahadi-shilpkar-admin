@@ -41,6 +41,9 @@ export const PRODUCT_FORM_FIELD_NAMES = {
   META_TITLE: 'metaTitle',
   META_DESCRIPTION: 'metaDescription',
   CATEGORY_ID: 'categoryId',
+  /** What the variants differ by — sent together with VARIANTS. */
+  VARIANT_OPTIONS: 'variantOptions',
+  VARIANTS: 'variants',
 } as const;
 
 export const PRODUCT_LIMITS = {
@@ -71,6 +74,12 @@ export const PRODUCT_LIMITS = {
   DELIVERY_FEE_MAX: 100000,
   META_TITLE_MAX: 70,
   META_DESCRIPTION_MAX: 160,
+  VARIANT_OPTIONS_MAX: 3,
+  VARIANT_OPTION_NAME_MAX: 30,
+  VARIANT_OPTION_VALUES_MAX: 30,
+  VARIANT_OPTION_VALUE_MAX: 40,
+  VARIANTS_MAX: 100,
+  VARIANT_IMAGES_MAX: 6,
 } as const;
 
 /**
