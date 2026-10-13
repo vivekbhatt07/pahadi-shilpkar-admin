@@ -37,15 +37,31 @@ const ActiveMarker = ({ isActive }: { isActive: boolean }) => (
   />
 );
 
-/** How many inquiries nobody has opened yet; a dot while collapsed. */
-const NewInquiriesBadge = ({ isCollapsed }: { isCollapsed: boolean }) => {
+/**
+ * A live count beside a nav item — inquiries nobody has opened yet, or
+ * testimonials and photo requests waiting for a decision; a dot while
+ * collapsed.
+ */
+const NavCountBadge = ({
+  badge,
+  isCollapsed,
+}: {
+  badge: NonNullable<TNavItem['badge']>;
+  isCollapsed: boolean;
+}) => {
   const { data } = useStats();
-  const count = data?.inquiries.new ?? 0;
+  const count =
+    badge === 'newInquiries'
+      ? (data?.inquiries.new ?? 0)
+      : (data?.testimonials.pending ?? 0) +
+        (data?.testimonials.photoRequests ?? 0);
   if (count === 0) return null;
 
   return (
     <>
-      <span className="sr-only">, {count} new</span>
+      <span className="sr-only">
+        , {count} {badge === 'newInquiries' ? 'new' : 'waiting'}
+      </span>
       {isCollapsed ? (
         <span
           aria-hidden
@@ -108,8 +124,8 @@ const SidebarLink = ({ item, isCollapsed, onNavigate }: TSidebarLinkProps) => {
         <span className={isCollapsed ? 'sr-only' : 'truncate'}>
           {item.label}
         </span>
-        {item.badge === 'newInquiries' && (
-          <NewInquiriesBadge isCollapsed={isCollapsed} />
+        {item.badge && (
+          <NavCountBadge badge={item.badge} isCollapsed={isCollapsed} />
         )}
       </NavLink>
     </SimpleTooltip>

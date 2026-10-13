@@ -22,6 +22,7 @@ import {
   EditProductPage,
   ForgotPasswordPage,
   InquiriesPage,
+  ProcessPage,
   ProductDetailPage,
   ProductsPage,
   ProfilePage,
@@ -99,6 +100,7 @@ export const AppRouter = () => {
             element={<EditComboPage />}
           />
           <Route path={ROUTES.PRIVATE.BANNERS} element={<BannersPage />} />
+          <Route path={ROUTES.PRIVATE.PROCESS} element={<ProcessPage />} />
           <Route path={ROUTES.PRIVATE.INQUIRIES} element={<InquiriesPage />} />
           <Route
             path={ROUTES.PRIVATE.TESTIMONIALS}

@@ -310,8 +310,18 @@ export interface DashboardStats {
     featured: number;
   };
   users: { total: number; verified: number; admins: number };
-  /** Product and combo testimonials together; avgRating is 0 when there are none. */
-  testimonials: { total: number; avgRating: number };
+  /** Product and combo testimonials together. */
+  testimonials: {
+    total: number;
+    approved: number;
+    /** Waiting for approval — the moderation queue. */
+    pending: number;
+    rejected: number;
+    /** The approved ones' — what shoppers see; 0 when there are none. */
+    avgRating: number;
+    /** Authors waiting for an answer about changing their photos. */
+    photoRequests: number;
+  };
   /** `new` = status NEW, not looked at yet. */
   inquiries: { total: number; new: number };
   whatsappConfigured: boolean;
@@ -397,12 +407,28 @@ export interface StoreSettings {
 
 /* ── Testimonials ──────────────────────────────────────────────── */
 
+/** Only APPROVED testimonials are on the storefront. */
+export type TestimonialStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export type PhotoRequestStatus = 'PENDING' | 'APPROVED' | 'DECLINED';
+
+/** An author's request to change photos they've already added. */
+export interface PhotoRequest {
+  status: PhotoRequestStatus;
+  reason: string | null;
+  /** The admin's answer to a declined request — the author sees it. */
+  note: string | null;
+  requestedAt: string;
+}
+
 /** Exactly one of productId / comboId is set — the product or the combo reviewed. */
 export interface Testimonial {
   id: string;
   content: string;
   /** 1–5 */
   rating: number;
+  /** The author's photos, 0–4. */
+  images: string[];
   userId: string;
   productId: string | null;
   comboId: string | null;
@@ -416,23 +442,125 @@ export interface Testimonial {
   updatedAt: string;
 }
 
-/**
- * Only from GET /api/testimonials/all. Exactly one of product / combo is set,
- * matching productId / comboId — never assume `product` is there.
- */
-export interface TestimonialWithListing extends Testimonial {
-  product: { id: string; name: string; slug: string } | null;
-  combo: { id: string; name: string; slug: string } | null;
+/** What a testimonial reviews; `image` falls back to a combo's products'. */
+export interface TestimonialListing {
+  id: string;
+  name: string;
+  slug: string;
+  image: string | null;
 }
 
-/** GET /api/testimonials takes exactly one of these. */
-export type TestimonialFilter =
-  | { productId: string; comboId?: never }
-  | { comboId: string; productId?: never };
+/**
+ * From GET /api/testimonials/all and every admin write. Exactly one of
+ * product / combo is set, matching productId / comboId — never assume
+ * `product` is there.
+ */
+export interface TestimonialWithListing extends Testimonial {
+  /** An author's edit sends it back to PENDING. */
+  status: TestimonialStatus;
+  /** REJECTED only — the author sees it. */
+  rejectionReason: string | null;
+  /** When an admin last approved or rejected it. */
+  moderatedAt: string | null;
+  /** First in the storefront's testimonial slider. */
+  isFeatured: boolean;
+  /** The author has used their one chance to add photos. */
+  photosLocked: boolean;
+  photoRequest: PhotoRequest | null;
+  product: TestimonialListing | null;
+  combo: TestimonialListing | null;
+}
 
+/** Newest first; every status unless one is asked for. */
 export interface TestimonialListParams {
+  status?: TestimonialStatus;
+  photoRequest?: PhotoRequestStatus;
+  /** At most one of productId / comboId. */
+  productId?: string;
+  comboId?: string;
+  withPhotos?: boolean;
   page?: number;
   limit?: number;
+}
+
+/** 1–100 ids, all or nothing. A reason only goes with REJECTED (≤300). */
+export interface ModerateTestimonialsPayload {
+  ids: string[];
+  status: 'APPROVED' | 'REJECTED';
+  rejectionReason?: string | null;
+}
+
+/** A note only goes with DECLINED (≤300) — the author sees it. */
+export interface AnswerPhotoRequestPayload {
+  decision: 'APPROVED' | 'DECLINED';
+  note?: string | null;
+}
+
+/* ── How we make it ────────────────────────────────────────────── */
+
+export interface ProcessStat {
+  /** ≤12, e.g. "120+" */
+  value: string;
+  /** ≤40, e.g. "artisans" */
+  label: string;
+}
+
+/** The storefront page's own words — null fields use the storefront's copy. */
+export interface ProcessPage {
+  title: string | null;
+  intro: string | null;
+  heroImage: string | null;
+  /** 0–4 headline figures. */
+  stats: ProcessStat[];
+  /** Null until first saved. */
+  updatedAt: string | null;
+}
+
+/** One step of how a piece is made; the storefront shows active ones in order. */
+export interface ProcessStep {
+  id: string;
+  title: string;
+  description: string;
+  image: string | null;
+  /** YouTube / Vimeo link, or a direct video file. */
+  videoUrl: string | null;
+  /** "6 months", "2–3 days" */
+  duration: string | null;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Process {
+  page: ProcessPage;
+  /** By sortOrder. */
+  steps: ProcessStep[];
+}
+
+export interface ProcessParams {
+  /** Admin only — also the steps that are switched off. */
+  includeInactive?: boolean;
+}
+
+/** `null` clears a field; `stats` replaces the list wholesale. */
+export type UpdateProcessPagePayload = Partial<Omit<ProcessPage, 'updatedAt'>>;
+
+/** A step without sortOrder goes last. */
+export interface CreateProcessStepPayload {
+  title: string;
+  description: string;
+  image?: string | null;
+  videoUrl?: string | null;
+  duration?: string | null;
+  isActive?: boolean;
+  sortOrder?: number;
+}
+
+export type UpdateProcessStepPayload = Partial<CreateProcessStepPayload>;
+
+export interface ReorderProcessStepsPayload {
+  items: { id: string; sortOrder: number }[];
 }
 
 /* ── Banners ───────────────────────────────────────────────────── */

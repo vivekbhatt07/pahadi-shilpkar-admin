@@ -1,18 +1,24 @@
-import { useState } from 'react';
-import { MessageSquare, Trash2 } from 'lucide-react';
+import { Link } from 'react-router';
+import { MessageSquare } from 'lucide-react';
 
 import EmptyState from '@/components/custom/EmptyState';
 import ListSkeleton from '@/components/custom/ListSkeleton';
 import RatingStars from '@/components/custom/RatingStars';
-import ConfirmDialog from '@/components/dialogs/confirm-dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { SimpleTooltip } from '@/components/ui/tooltip';
+import { ROUTES } from '@/constants/routes';
 import { formatDateTime, getDisplayName, getInitials } from '@/helpers/format';
-import { useDeleteTestimonial, useTestimonials } from '@/hooks/testimonials';
-import type { Combo, Product, Testimonial } from '@/types/api';
+import { useAllTestimonials } from '@/hooks/testimonials';
+import type { Combo, Product } from '@/types/api';
+
+import { useTestimonialModeration } from '../useTestimonialModeration';
+import {
+  TestimonialBody,
+  TestimonialRowActions,
+  TestimonialStatusBadges,
+} from './TestimonialsTable';
 
 type TListingTestimonialsProps = {
   type: 'product' | 'combo';
@@ -22,30 +28,24 @@ type TListingTestimonialsProps = {
   >;
 };
 
+/** One listing rarely has more; the queue pages through the rest. */
+const LISTING_LIMIT = 100;
+
 /**
- * The testimonials on one product or one combo — a combo's are its own, never
- * its products'. Moderation is delete-only: admins cannot edit another user's
- * testimonial (PATCH is author-only and answers 403).
+ * The testimonials on one product or one combo, in every status — a combo's
+ * are its own, never its products'. Moderated right here, as in the queue;
+ * admins cannot edit another user's words (PATCH is author-only).
  */
 const ListingTestimonials = ({ type, listing }: TListingTestimonialsProps) => {
-  const isProduct = type === 'product';
-  const testimonials = useTestimonials(
-    isProduct ? { productId: listing.id } : { comboId: listing.id },
+  const testimonials = useAllTestimonials(
+    type === 'product'
+      ? { productId: listing.id, limit: LISTING_LIMIT }
+      : { comboId: listing.id, limit: LISTING_LIMIT },
   );
-  const deleteTestimonial = useDeleteTestimonial();
-  const [target, setTarget] = useState<Testimonial | null>(null);
+  const moderation = useTestimonialModeration();
 
-  const items = testimonials.data ?? [];
-
-  const handleDelete = () => {
-    if (!target) return;
-    deleteTestimonial.mutate(
-      isProduct
-        ? { id: target.id, productSlug: listing.slug }
-        : { id: target.id, comboSlug: listing.slug },
-      { onSuccess: () => setTarget(null) },
-    );
-  };
+  const items = testimonials.data?.items ?? [];
+  const pendingCount = items.filter((t) => t.status === 'PENDING').length;
 
   return (
     <Card>
@@ -59,14 +59,24 @@ const ListingTestimonials = ({ type, listing }: TListingTestimonialsProps) => {
             >
               {listing.testimonialCount}
             </Badge>
+            {pendingCount > 0 && (
+              <Badge variant="warning" className="ml-1.5 align-middle">
+                {pendingCount} pending
+              </Badge>
+            )}
           </CardTitle>
           <div className="flex items-center gap-2 text-xs text-stone-500 dark:text-stone-400">
             <RatingStars rating={listing.avgRating} />
             <span className="tabular-nums">
-              {listing.avgRating.toFixed(1)} average
+              {listing.avgRating.toFixed(1)} average of the approved ones
             </span>
           </div>
         </div>
+        {pendingCount > 0 && (
+          <Button variant="outline" size="sm" asChild>
+            <Link to={ROUTES.PRIVATE.TESTIMONIALS}>Open the queue</Link>
+          </Button>
+        )}
       </CardHeader>
       <CardContent className="p-0">
         {testimonials.isPending ? (
@@ -87,7 +97,7 @@ const ListingTestimonials = ({ type, listing }: TListingTestimonialsProps) => {
                     {getInitials(testimonial.user)}
                   </AvatarFallback>
                 </Avatar>
-                <div className="min-w-0 flex-1">
+                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                     <p className="text-sm font-medium text-stone-900 dark:text-stone-50">
                       {getDisplayName(testimonial.user)}
@@ -96,22 +106,21 @@ const ListingTestimonials = ({ type, listing }: TListingTestimonialsProps) => {
                     <span className="text-xs text-stone-400 dark:text-stone-500">
                       {formatDateTime(testimonial.createdAt)}
                     </span>
+                    <TestimonialStatusBadges testimonial={testimonial} />
                   </div>
-                  <p className="mt-1.5 text-sm leading-relaxed whitespace-pre-line text-stone-700 dark:text-stone-300">
-                    {testimonial.content}
-                  </p>
+                  <TestimonialBody
+                    testimonial={testimonial}
+                    clamp={false}
+                    onOpenPhoto={(index) =>
+                      moderation.actions.onOpenPhoto(testimonial, index)
+                    }
+                  />
                 </div>
-                <SimpleTooltip label="Delete testimonial">
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={() => setTarget(testimonial)}
-                    aria-label="Delete testimonial"
-                    className="shrink-0 text-stone-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950/30"
-                  >
-                    <Trash2 />
-                  </Button>
-                </SimpleTooltip>
+                <TestimonialRowActions
+                  testimonial={testimonial}
+                  isBusy={moderation.isBusy}
+                  {...moderation.actions}
+                />
               </li>
             ))}
           </ul>
@@ -125,24 +134,7 @@ const ListingTestimonials = ({ type, listing }: TListingTestimonialsProps) => {
         )}
       </CardContent>
 
-      <ConfirmDialog
-        open={target !== null}
-        onOpenChange={(open) => !open && setTarget(null)}
-        title="Delete testimonial"
-        variant="destructive"
-        confirmLabel="Delete"
-        isPending={deleteTestimonial.isPending}
-        onConfirm={handleDelete}
-        description={
-          <p>
-            This removes the testimonial by{' '}
-            <span className="font-medium text-stone-900 dark:text-stone-50">
-              {getDisplayName(target?.user)}
-            </span>{' '}
-            permanently. This cannot be undone.
-          </p>
-        }
-      />
+      {moderation.dialogs}
     </Card>
   );
 };

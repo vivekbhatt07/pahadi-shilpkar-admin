@@ -36,6 +36,7 @@ import { useStats } from '@/hooks/stats';
 import { useAllTestimonials } from '@/hooks/testimonials';
 import { useAuthStore } from '@/store/authStore';
 
+import { TESTIMONIAL_STATUS_BADGES } from '../testimonials/constants';
 import { getTestimonialListing } from '../testimonials/helpers';
 import BuyingInterestCard from './layouts/BuyingInterestCard';
 import ListSkeletonRows from './layouts/ListSkeletonRows';
@@ -102,6 +103,8 @@ const DashboardPage = () => {
     ? counts.combos.active - counts.combos.visible
     : 0;
   const newInquiryCount = counts?.inquiries.new ?? 0;
+  const pendingTestimonialCount = counts?.testimonials.pending ?? 0;
+  const photoRequestCount = counts?.testimonials.photoRequests ?? 0;
 
   const greeting = user?.firstName
     ? `${getGreeting()}, ${user.firstName}`
@@ -188,6 +191,48 @@ const DashboardPage = () => {
         </Callout>
       )}
 
+      {(pendingTestimonialCount > 0 || photoRequestCount > 0) && (
+        <Callout
+          variant="info"
+          size="md"
+          title={
+            pendingTestimonialCount > 0
+              ? `${pendingTestimonialCount} ${
+                  pendingTestimonialCount === 1
+                    ? 'testimonial is'
+                    : 'testimonials are'
+                } waiting for your approval`
+              : `${photoRequestCount} photo ${
+                  photoRequestCount === 1 ? 'request is' : 'requests are'
+                } waiting for an answer`
+          }
+          action={
+            <Button variant="outline" size="sm" asChild>
+              <RouterLink
+                to={
+                  pendingTestimonialCount > 0
+                    ? ROUTES.PRIVATE.TESTIMONIALS
+                    : `${ROUTES.PRIVATE.TESTIMONIALS}?tab=photo-requests`
+                }
+              >
+                Review{' '}
+                {pendingTestimonialCount + photoRequestCount === 1
+                  ? 'it'
+                  : 'them'}
+              </RouterLink>
+            </Button>
+          }
+        >
+          {pendingTestimonialCount > 0 && photoRequestCount > 0
+            ? `Shoppers only see approved testimonials. ${photoRequestCount} ${
+                photoRequestCount === 1 ? 'author wants' : 'authors want'
+              } to change their photos, too.`
+            : pendingTestimonialCount > 0
+              ? 'Shoppers only see approved testimonials — new ones and edited ones wait for you.'
+              : 'Photos can be added to a testimonial once; changing them needs your OK.'}
+        </Callout>
+      )}
+
       <div className="stagger grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-6">
         <StatCard
           icon={<Package />}
@@ -240,9 +285,11 @@ const DashboardPage = () => {
           label="Testimonials"
           value={counts?.testimonials.total}
           hint={
-            counts && counts.testimonials.total > 0
-              ? `${counts.testimonials.avgRating.toFixed(1)} ★ average`
-              : undefined
+            counts && counts.testimonials.pending > 0
+              ? `${counts.testimonials.pending} waiting for approval`
+              : counts && counts.testimonials.approved > 0
+                ? `${counts.testimonials.avgRating.toFixed(1)} ★ average`
+                : undefined
           }
           isLoading={stats.isPending}
           to={ROUTES.PRIVATE.TESTIMONIALS}
@@ -357,6 +404,19 @@ const DashboardPage = () => {
                             {getDisplayName(testimonial.user)}
                           </p>
                           <RatingStars rating={testimonial.rating} size={12} />
+                          {testimonial.status !== 'APPROVED' && (
+                            <Badge
+                              variant={
+                                TESTIMONIAL_STATUS_BADGES[testimonial.status]
+                                  .variant
+                              }
+                            >
+                              {
+                                TESTIMONIAL_STATUS_BADGES[testimonial.status]
+                                  .label
+                              }
+                            </Badge>
+                          )}
                         </div>
                         <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-stone-500 dark:text-stone-400">
                           “{testimonial.content}”

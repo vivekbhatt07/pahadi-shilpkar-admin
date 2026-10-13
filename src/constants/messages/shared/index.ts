@@ -123,4 +123,19 @@ export const VALIDATION_MESSAGES = {
   INQUIRY: {
     NOTE_MAX: 'Note must be 1000 characters or fewer',
   },
+  PROCESS: {
+    TITLE_MAX: 'Title must be 80 characters or fewer',
+    INTRO_MAX: 'Intro must be 600 characters or fewer',
+    STATS_MAX: 'You can add up to 4 figures',
+    STAT_VALUE_REQUIRED: 'Add the figure, e.g. 120+',
+    STAT_VALUE_MAX: 'The figure must be 12 characters or fewer',
+    STAT_LABEL_REQUIRED: 'Say what the figure counts',
+    STAT_LABEL_MAX: 'The label must be 40 characters or fewer',
+    STEP_TITLE_REQUIRED: 'Give the step a title',
+    STEP_TITLE_MAX: 'Title must be 80 characters or fewer',
+    STEP_DESCRIPTION_REQUIRED: 'Describe what happens in this step',
+    STEP_DESCRIPTION_MAX: 'Description must be 1200 characters or fewer',
+    STEP_DURATION_MAX: 'Duration must be 40 characters or fewer',
+    STEP_VIDEO_MAX: 'Video link must be 500 characters or fewer',
+  },
 };
