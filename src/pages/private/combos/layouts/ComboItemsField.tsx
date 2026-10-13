@@ -23,7 +23,14 @@ import { formatPrice } from '@/helpers/format';
 import { cn } from '@/lib/utils';
 
 import { COMBO_FORM_FIELD_NAMES, COMBO_LIMITS } from '../constants';
-import { toComboProduct } from '../helpers';
+import {
+  comboItemImage,
+  comboItemKey,
+  comboItemName,
+  comboItemPrice,
+  toComboProduct,
+  toComboVariant,
+} from '../helpers';
 import type { TComboFormData } from '../types';
 import ProductPicker from './ProductPicker';
 
@@ -35,9 +42,11 @@ const stepperButtonClass =
   'flex size-7 cursor-pointer items-center justify-center rounded-md text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-900 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-stone-800 dark:hover:text-stone-50';
 
 /**
- * The products inside a combo, in display order. Each product can appear
- * once — "pack of 3" is quantity 3. The whole list is sent on every save
- * (PATCH replaces it wholesale).
+ * The products inside a combo, in display order — for a product that comes in
+ * variants, the variant picked ("Thali — Peacock"). Each product or variant
+ * can appear once — "pack of 3" is quantity 3 — but two designs of one thali
+ * are two items. The whole list is sent on every save (PATCH replaces it
+ * wholesale).
  */
 const ComboItemsField = ({ disabled }: TComboItemsFieldProps) => {
   const { control, setValue, trigger } = useFormContext<TComboFormData>();
@@ -82,8 +91,10 @@ const ComboItemsField = ({ disabled }: TComboItemsFieldProps) => {
           {fields.map((field, index) => {
             const item = items[index] ?? field;
             const quantity = item.quantity;
+            const price = comboItemPrice(item);
+            const name = comboItemName(item);
             const lineTotal = Number.isInteger(quantity)
-              ? item.product.price * quantity
+              ? price * quantity
               : null;
             const quantityError = errors?.[index]?.quantity?.message;
 
@@ -95,7 +106,7 @@ const ComboItemsField = ({ disabled }: TComboItemsFieldProps) => {
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
                   <div className="flex min-w-0 flex-1 items-center gap-3">
                     <ImageThumb
-                      src={item.product.images[0]}
+                      src={comboItemImage(item)}
                       alt=""
                       className="size-10"
                     />
@@ -113,9 +124,19 @@ const ComboItemsField = ({ disabled }: TComboItemsFieldProps) => {
                             Inactive
                           </Badge>
                         )}
+                        {item.variant && !item.variant.isActive && (
+                          <Badge variant="secondary" className="shrink-0">
+                            Variant hidden
+                          </Badge>
+                        )}
                       </div>
                       <p className="mt-0.5 text-xs tabular-nums text-stone-400 dark:text-stone-500">
-                        {formatPrice(item.product.price)} each
+                        {item.variant && (
+                          <span className="font-medium text-stone-600 dark:text-stone-300">
+                            {item.variant.title} ·{' '}
+                          </span>
+                        )}
+                        {formatPrice(price)} each
                       </p>
                     </div>
                   </div>
@@ -133,7 +154,7 @@ const ComboItemsField = ({ disabled }: TComboItemsFieldProps) => {
                         type="button"
                         onClick={() => setQuantity(index, quantity - 1)}
                         disabled={disabled || !(quantity > 1)}
-                        aria-label={`Decrease quantity of ${item.product.name}`}
+                        aria-label={`Decrease quantity of ${name}`}
                         className={stepperButtonClass}
                       >
                         <Minus className="size-3.5" />
@@ -154,7 +175,7 @@ const ComboItemsField = ({ disabled }: TComboItemsFieldProps) => {
                           )
                         }
                         disabled={disabled}
-                        aria-label={`Quantity of ${item.product.name}`}
+                        aria-label={`Quantity of ${name}`}
                         aria-invalid={Boolean(quantityError)}
                         className="w-10 bg-transparent text-center text-sm font-medium tabular-nums outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                       />
@@ -164,7 +185,7 @@ const ComboItemsField = ({ disabled }: TComboItemsFieldProps) => {
                         disabled={
                           disabled || !(quantity < COMBO_LIMITS.QUANTITY_MAX)
                         }
-                        aria-label={`Increase quantity of ${item.product.name}`}
+                        aria-label={`Increase quantity of ${name}`}
                         className={stepperButtonClass}
                       >
                         <Plus className="size-3.5" />
@@ -183,7 +204,7 @@ const ComboItemsField = ({ disabled }: TComboItemsFieldProps) => {
                           size="icon-sm"
                           onClick={() => move(index, index - 1)}
                           disabled={disabled || index === 0}
-                          aria-label={`Move ${item.product.name} up`}
+                          aria-label={`Move ${name} up`}
                         >
                           <ArrowUp className="text-stone-400" />
                         </Button>
@@ -195,7 +216,7 @@ const ComboItemsField = ({ disabled }: TComboItemsFieldProps) => {
                           size="icon-sm"
                           onClick={() => move(index, index + 1)}
                           disabled={disabled || index === fields.length - 1}
-                          aria-label={`Move ${item.product.name} down`}
+                          aria-label={`Move ${name} down`}
                         >
                           <ArrowDown className="text-stone-400" />
                         </Button>
@@ -207,7 +228,7 @@ const ComboItemsField = ({ disabled }: TComboItemsFieldProps) => {
                           size="icon-sm"
                           onClick={() => remove(index)}
                           disabled={disabled}
-                          aria-label={`Remove ${item.product.name}`}
+                          aria-label={`Remove ${name}`}
                           className="text-stone-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950/30"
                         >
                           <Trash2 />
@@ -237,12 +258,16 @@ const ComboItemsField = ({ disabled }: TComboItemsFieldProps) => {
       <div className="flex flex-wrap items-center gap-3">
         {fields.length < COMBO_LIMITS.ITEMS_MAX ? (
           <ProductPicker
-            selectedIds={items.map((item) => item.productId)}
-            onSelect={(product) =>
+            selectedKeys={items.map((item) =>
+              comboItemKey(item.productId, item.variantId),
+            )}
+            onSelect={(product, variant) =>
               append({
                 productId: product.id,
+                variantId: variant?.id ?? null,
                 quantity: 1,
                 product: toComboProduct(product),
+                variant: variant ? toComboVariant(variant) : null,
               })
             }
             disabled={disabled}

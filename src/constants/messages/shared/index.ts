@@ -87,6 +87,18 @@ export const VALIDATION_MESSAGES = {
     PURCHASE_LINKS_MAX: 'You can add up to 10 purchase links',
     META_TITLE_MAX: 'Meta title must be 70 characters or fewer',
     META_DESCRIPTION_MAX: 'Meta description must be 160 characters or fewer',
+    VARIANT_OPTIONS_MAX: 'A product can have up to 3 options',
+    VARIANT_OPTION_NAME_REQUIRED: 'Each option needs a name',
+    VARIANT_OPTION_NAME_MAX: 'Option names must be 30 characters or fewer',
+    VARIANT_OPTION_NAME_DUPLICATE: 'This option is already listed',
+    VARIANT_OPTION_VALUES_REQUIRED: 'Add at least one value',
+    VARIANT_OPTION_VALUES_MAX: 'An option can have up to 30 values',
+    VARIANT_OPTION_VALUE_MAX: 'Values must be 40 characters or fewer',
+    VARIANTS_REQUIRED: 'Add at least one variant, or remove the options',
+    VARIANTS_MAX: 'A product can have up to 100 variants',
+    VARIANT_SKU_DUPLICATE:
+      'Another variant or the product already uses this SKU',
+    VARIANT_IMAGES_MAX: 'A variant can have up to 6 photos',
   },
   COMBO: {
     NAME_REQUIRED: 'Combo name is required',
@@ -98,6 +110,8 @@ export const VALIDATION_MESSAGES = {
     QUANTITY_REQUIRED: 'Quantity is required',
     QUANTITY_INTEGER: 'Quantity must be a whole number',
     QUANTITY_RANGE: 'Quantity must be between 1 and 99',
+    VARIANT_REQUIRED: 'Pick which variant goes in the combo',
+    ITEM_DUPLICATE: 'Already in the combo — raise its quantity instead',
   },
   DELIVERY: {
     FEE_INVALID:
@@ -122,5 +136,20 @@ export const VALIDATION_MESSAGES = {
   },
   INQUIRY: {
     NOTE_MAX: 'Note must be 1000 characters or fewer',
+  },
+  PROCESS: {
+    TITLE_MAX: 'Title must be 80 characters or fewer',
+    INTRO_MAX: 'Intro must be 600 characters or fewer',
+    STATS_MAX: 'You can add up to 4 figures',
+    STAT_VALUE_REQUIRED: 'Add the figure, e.g. 120+',
+    STAT_VALUE_MAX: 'The figure must be 12 characters or fewer',
+    STAT_LABEL_REQUIRED: 'Say what the figure counts',
+    STAT_LABEL_MAX: 'The label must be 40 characters or fewer',
+    STEP_TITLE_REQUIRED: 'Give the step a title',
+    STEP_TITLE_MAX: 'Title must be 80 characters or fewer',
+    STEP_DESCRIPTION_REQUIRED: 'Describe what happens in this step',
+    STEP_DESCRIPTION_MAX: 'Description must be 1200 characters or fewer',
+    STEP_DURATION_MAX: 'Duration must be 40 characters or fewer',
+    STEP_VIDEO_MAX: 'Video link must be 500 characters or fewer',
   },
 };

@@ -2,8 +2,10 @@ import type {
   Combo,
   ComboItem,
   ComboProduct,
+  ComboVariant,
   Product,
   ProductAvailability,
+  ProductVariant,
 } from '@/types/api';
 
 /** The product fields a combo item carries — also used as the form snapshot. */
@@ -19,6 +21,43 @@ export const toComboProduct = (
   isActive: product.isActive,
 });
 
+/** The variant fields a combo item carries — also used as the form snapshot. */
+export const toComboVariant = (
+  variant: ProductVariant | ComboVariant,
+): ComboVariant => ({
+  id: variant.id,
+  title: variant.title,
+  options: variant.options,
+  price: variant.price,
+  images: variant.images,
+  availability: variant.availability,
+  isActive: variant.isActive,
+});
+
+/** Identifies an item: a product, or one variant of it. */
+export const comboItemKey = (productId: string, variantId: string | null) =>
+  `${productId}/${variantId ?? ''}`;
+
+type TComboItemView = Pick<ComboItem, 'product' | 'variant'>;
+
+/** "Karwa Chauth Thali — Peacock" for a variant, else the product's name. */
+export const comboItemName = (item: TComboItemView) =>
+  item.variant
+    ? `${item.product.name} — ${item.variant.title}`
+    : item.product.name;
+
+/** What one of the item costs — the variant picked, else the product. */
+export const comboItemPrice = (item: TComboItemView) =>
+  (item.variant ?? item.product).price;
+
+/** The item's photo — the variant's own, else the product's. */
+export const comboItemImage = (item: TComboItemView): string | undefined =>
+  item.variant?.images[0] ?? item.product.images[0];
+
+/** Can't be ordered, so it hides the combo: an inactive product or variant. */
+export const isComboItemOff = (item: TComboItemView) =>
+  !item.product.isActive || (item.variant !== null && !item.variant.isActive);
+
 // Least available first — mirrors the backend's derivation.
 const AVAILABILITY_PRECEDENCE: ProductAvailability[] = [
   'OUT_OF_STOCK',
@@ -27,7 +66,7 @@ const AVAILABILITY_PRECEDENCE: ProductAvailability[] = [
   'IN_STOCK',
 ];
 
-type TPricedItem = Pick<ComboItem, 'quantity' | 'product'>;
+type TPricedItem = Pick<ComboItem, 'quantity' | 'product' | 'variant'>;
 
 const roundMoney = (value: number) => Math.round(value * 100) / 100;
 
@@ -39,7 +78,7 @@ export const summarizeCombo = (items: TPricedItem[], price: number) => {
   const validItems = items.filter((item) => Number.isInteger(item.quantity));
   const itemsTotal = roundMoney(
     validItems.reduce(
-      (sum, item) => sum + item.product.price * item.quantity,
+      (sum, item) => sum + comboItemPrice(item) * item.quantity,
       0,
     ),
   );
@@ -48,7 +87,9 @@ export const summarizeCombo = (items: TPricedItem[], price: number) => {
     hasPrice && itemsTotal > price ? roundMoney(itemsTotal - price) : null;
   const availabilities = new Set(
     items.map((item) =>
-      item.product.isActive ? item.product.availability : 'OUT_OF_STOCK',
+      isComboItemOff(item)
+        ? 'OUT_OF_STOCK'
+        : (item.variant ?? item.product).availability,
     ),
   );
 
@@ -61,23 +102,23 @@ export const summarizeCombo = (items: TPricedItem[], price: number) => {
     availability:
       AVAILABILITY_PRECEDENCE.find((value) => availabilities.has(value)) ??
       'IN_STOCK',
-    inactiveProducts: items
-      .filter((item) => !item.product.isActive)
-      .map((item) => item.product),
+    /** Names of the inactive products and switched-off variants inside. */
+    inactiveItems: items.filter(isComboItemOff).map(comboItemName),
   };
 };
 
-/** Hidden from the storefront: inactive, or holding an inactive product. */
-export const isComboHidden = (combo: Combo) =>
-  !combo.isActive || combo.items.some((item) => !item.product.isActive);
+/** Holds an inactive product or a switched-off variant — that hides it. */
+export const hasInactiveItem = (combo: Combo) =>
+  combo.items.some(isComboItemOff);
 
-export const hasInactiveProduct = (combo: Combo) =>
-  combo.items.some((item) => !item.product.isActive);
+/** Hidden from the storefront: inactive, or holding something inactive. */
+export const isComboHidden = (combo: Combo) =>
+  !combo.isActive || hasInactiveItem(combo);
 
 /** The combo's own photos, else the first photo of each item. */
 export const comboImages = (combo: Combo) =>
   combo.images.length > 0
     ? combo.images
     : combo.items
-        .map((item) => item.product.images[0])
+        .map(comboItemImage)
         .filter((url): url is string => Boolean(url));

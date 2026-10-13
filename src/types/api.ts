@@ -146,20 +146,66 @@ export interface ProductMeasurements {
   note: string | null;
 }
 
+/** What a product's variants differ by — up to 3 options, e.g. Design × Size. */
+export interface VariantOption {
+  /** ≤30, unique per product ignoring case: "Design", "Size". */
+  name: string;
+  /** 1–30, each ≤40, unique ignoring case. */
+  values: string[];
+}
+
+/** One combination of option values, sold as its own thing. */
+export interface ProductVariant {
+  /** Stable — combos, stock alerts and buy clicks point at it. */
+  id: string;
+  /** Read-only: the values in option order, "Peacock / Large". */
+  title: string;
+  /** { Design: "Peacock" } — one listed value per option; key order means nothing. */
+  options: Record<string, string>;
+  /** Stored UPPERCASE; unique across all products and variants. */
+  sku: string | null;
+  price: number;
+  /** > price when set. */
+  compareAtPrice: number | null;
+  /** Read-only. */
+  discountPercentage: number | null;
+  /** ≤6, its own photos; [] = the product's are shown. */
+  images: string[];
+  stock: number;
+  availability: ProductAvailability;
+  /** Off = hidden from the storefront and left out of the derived figures. */
+  isActive: boolean;
+  /** Read-only: the order sent. */
+  sortOrder: number;
+  /** Read-only: names the variant and links to it. */
+  whatsappUrl: string | null;
+}
+
 export interface Product {
   id: string;
   name: string;
   slug: string;
-  /** Stored UPPERCASE, unique. */
+  /** Stored UPPERCASE, unique across products and variants. */
   sku: string | null;
   shortDescription: string | null;
   description: string | null;
   highlights: string[];
+  /**
+   * With variants, this, compareAtPrice, stock and availability are read-only
+   * — derived from the active variants: the lowest price (with its
+   * compare-at), the total stock and the best availability.
+   */
   price: number;
   /** MRP / strike-through; always > price when set. */
   compareAtPrice: number | null;
   /** Read-only, derived from compareAtPrice. */
   discountPercentage: number | null;
+  /** [] = the product comes one way only. */
+  variantOptions: VariantOption[];
+  /** In order, switched-off ones included (admin requests). */
+  variants: ProductVariant[];
+  /** Read-only: the active variants' prices; null without variants. */
+  priceRange: { min: number; max: number } | null;
   /** This product's own setting; null = follows the store default. */
   deliveryCharge: DeliveryCharge | null;
   /** EXTRA only; null = quoted with the order. */
@@ -232,11 +278,21 @@ export interface ComboProduct {
   isActive: boolean;
 }
 
+/** The slice of a variant a combo carries for an item that is one. */
+export type ComboVariant = Pick<
+  ProductVariant,
+  'id' | 'title' | 'options' | 'price' | 'images' | 'availability' | 'isActive'
+>;
+
 export interface ComboItem {
   productId: string;
+  /** The variant picked — set exactly when the product has variants. */
+  variantId: string | null;
   /** 1–99 */
   quantity: number;
   product: ComboProduct;
+  /** Its price, photo and availability stand in for the product's. */
+  variant: ComboVariant | null;
 }
 
 /**
@@ -264,7 +320,11 @@ export interface Combo {
   deliveryFee: number | null;
   /** Read-only: what shoppers see, resolved as on products. */
   delivery: Delivery | null;
-  /** Read-only: the least available item wins; an inactive product counts as out of stock. */
+  /**
+   * Read-only: the least available item wins — an item is its variant's
+   * availability when it has one; an inactive product or variant counts as
+   * out of stock.
+   */
   availability: ProductAvailability;
   /** Read-only: total units across items. */
   itemCount: number;
@@ -310,8 +370,18 @@ export interface DashboardStats {
     featured: number;
   };
   users: { total: number; verified: number; admins: number };
-  /** Product and combo testimonials together; avgRating is 0 when there are none. */
-  testimonials: { total: number; avgRating: number };
+  /** Product and combo testimonials together. */
+  testimonials: {
+    total: number;
+    approved: number;
+    /** Waiting for approval — the moderation queue. */
+    pending: number;
+    rejected: number;
+    /** The approved ones' — what shoppers see; 0 when there are none. */
+    avgRating: number;
+    /** Authors waiting for an answer about changing their photos. */
+    photoRequests: number;
+  };
   /** `new` = status NEW, not looked at yet. */
   inquiries: { total: number; new: number };
   whatsappConfigured: boolean;
@@ -352,11 +422,14 @@ export interface BuyClickStats {
   })[];
 }
 
-/** Only from GET /api/stats/stock-alerts — products shoppers are waiting on. */
+/**
+ * Only from GET /api/stats/stock-alerts — products (and variants of them)
+ * shoppers are waiting on.
+ */
 export interface StockAlertStats {
   /** Shoppers waiting, across all products. */
   total: number;
-  /** Up to 20, most wanted first. */
+  /** Up to 20 rows, most wanted first — one per product, or per variant. */
   products: {
     product: {
       id: string;
@@ -366,6 +439,13 @@ export interface StockAlertStats {
       availability: ProductAvailability;
       isActive: boolean;
     };
+    /** Set when they wait for this variant. */
+    variant: {
+      id: string;
+      title: string;
+      images: string[];
+      availability: ProductAvailability;
+    } | null;
     waiting: number;
     /** When the longest-waiting shopper asked. */
     since: string;
@@ -397,12 +477,28 @@ export interface StoreSettings {
 
 /* ── Testimonials ──────────────────────────────────────────────── */
 
+/** Only APPROVED testimonials are on the storefront. */
+export type TestimonialStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export type PhotoRequestStatus = 'PENDING' | 'APPROVED' | 'DECLINED';
+
+/** An author's request to change photos they've already added. */
+export interface PhotoRequest {
+  status: PhotoRequestStatus;
+  reason: string | null;
+  /** The admin's answer to a declined request — the author sees it. */
+  note: string | null;
+  requestedAt: string;
+}
+
 /** Exactly one of productId / comboId is set — the product or the combo reviewed. */
 export interface Testimonial {
   id: string;
   content: string;
   /** 1–5 */
   rating: number;
+  /** The author's photos, 0–4. */
+  images: string[];
   userId: string;
   productId: string | null;
   comboId: string | null;
@@ -416,23 +512,125 @@ export interface Testimonial {
   updatedAt: string;
 }
 
-/**
- * Only from GET /api/testimonials/all. Exactly one of product / combo is set,
- * matching productId / comboId — never assume `product` is there.
- */
-export interface TestimonialWithListing extends Testimonial {
-  product: { id: string; name: string; slug: string } | null;
-  combo: { id: string; name: string; slug: string } | null;
+/** What a testimonial reviews; `image` falls back to a combo's products'. */
+export interface TestimonialListing {
+  id: string;
+  name: string;
+  slug: string;
+  image: string | null;
 }
 
-/** GET /api/testimonials takes exactly one of these. */
-export type TestimonialFilter =
-  | { productId: string; comboId?: never }
-  | { comboId: string; productId?: never };
+/**
+ * From GET /api/testimonials/all and every admin write. Exactly one of
+ * product / combo is set, matching productId / comboId — never assume
+ * `product` is there.
+ */
+export interface TestimonialWithListing extends Testimonial {
+  /** An author's edit sends it back to PENDING. */
+  status: TestimonialStatus;
+  /** REJECTED only — the author sees it. */
+  rejectionReason: string | null;
+  /** When an admin last approved or rejected it. */
+  moderatedAt: string | null;
+  /** First in the storefront's testimonial slider. */
+  isFeatured: boolean;
+  /** The author has used their one chance to add photos. */
+  photosLocked: boolean;
+  photoRequest: PhotoRequest | null;
+  product: TestimonialListing | null;
+  combo: TestimonialListing | null;
+}
 
+/** Newest first; every status unless one is asked for. */
 export interface TestimonialListParams {
+  status?: TestimonialStatus;
+  photoRequest?: PhotoRequestStatus;
+  /** At most one of productId / comboId. */
+  productId?: string;
+  comboId?: string;
+  withPhotos?: boolean;
   page?: number;
   limit?: number;
+}
+
+/** 1–100 ids, all or nothing. A reason only goes with REJECTED (≤300). */
+export interface ModerateTestimonialsPayload {
+  ids: string[];
+  status: 'APPROVED' | 'REJECTED';
+  rejectionReason?: string | null;
+}
+
+/** A note only goes with DECLINED (≤300) — the author sees it. */
+export interface AnswerPhotoRequestPayload {
+  decision: 'APPROVED' | 'DECLINED';
+  note?: string | null;
+}
+
+/* ── How we make it ────────────────────────────────────────────── */
+
+export interface ProcessStat {
+  /** ≤12, e.g. "120+" */
+  value: string;
+  /** ≤40, e.g. "artisans" */
+  label: string;
+}
+
+/** The storefront page's own words — null fields use the storefront's copy. */
+export interface ProcessPage {
+  title: string | null;
+  intro: string | null;
+  heroImage: string | null;
+  /** 0–4 headline figures. */
+  stats: ProcessStat[];
+  /** Null until first saved. */
+  updatedAt: string | null;
+}
+
+/** One step of how a piece is made; the storefront shows active ones in order. */
+export interface ProcessStep {
+  id: string;
+  title: string;
+  description: string;
+  image: string | null;
+  /** YouTube / Vimeo link, or a direct video file. */
+  videoUrl: string | null;
+  /** "6 months", "2–3 days" */
+  duration: string | null;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Process {
+  page: ProcessPage;
+  /** By sortOrder. */
+  steps: ProcessStep[];
+}
+
+export interface ProcessParams {
+  /** Admin only — also the steps that are switched off. */
+  includeInactive?: boolean;
+}
+
+/** `null` clears a field; `stats` replaces the list wholesale. */
+export type UpdateProcessPagePayload = Partial<Omit<ProcessPage, 'updatedAt'>>;
+
+/** A step without sortOrder goes last. */
+export interface CreateProcessStepPayload {
+  title: string;
+  description: string;
+  image?: string | null;
+  videoUrl?: string | null;
+  duration?: string | null;
+  isActive?: boolean;
+  sortOrder?: number;
+}
+
+export type UpdateProcessStepPayload = Partial<CreateProcessStepPayload>;
+
+export interface ReorderProcessStepsPayload {
+  items: { id: string; sortOrder: number }[];
 }
 
 /* ── Banners ───────────────────────────────────────────────────── */
@@ -610,10 +808,33 @@ export interface DeliveryPayload {
 }
 
 /** `dimensions` is derived — sending it is a validation error. */
+/**
+ * A variant as sent — `id` keeps an existing one; fields an existing one
+ * leaves out keep their stored values.
+ */
+export interface ProductVariantPayload {
+  id?: string;
+  options: Record<string, string>;
+  price: number;
+  compareAtPrice?: number | null;
+  sku?: string | null;
+  stock?: number;
+  availability?: ProductAvailability;
+  images?: string[];
+  isActive?: boolean;
+}
+
 export interface CreateProductPayload extends DeliveryPayload {
   name: string;
-  price: number;
+  /** Required without variants; with them it's derived and ignored. */
+  price?: number;
   categoryId: string;
+  /**
+   * Sent together, each time the whole list — a stored variant left out is
+   * deleted. [] for both turns the product back into a single one.
+   */
+  variantOptions?: VariantOption[];
+  variants?: ProductVariantPayload[];
   slug?: string;
   sku?: string | null;
   shortDescription?: string | null;
@@ -674,6 +895,8 @@ export interface ComboListParams {
 
 export interface ComboItemPayload {
   productId: string;
+  /** Required for a product with variants, refused for one without. */
+  variantId?: string | null;
   quantity?: number;
 }
 

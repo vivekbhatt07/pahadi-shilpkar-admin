@@ -7,12 +7,15 @@ import { ROUTES } from '@/constants/routes';
 import { applyApiFieldErrors } from '@/helpers/form';
 import { useCreateCombo } from '@/hooks/combos';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-import type { ComboProduct } from '@/types/api';
+import type { ComboProduct, ComboVariant } from '@/types/api';
 
 import ComboForm from '../layouts/ComboForm';
 import type { TComboFormData, TCreateComboState } from '../types';
 
-const buildDefaultValues = (product?: ComboProduct): TComboFormData => ({
+const buildDefaultValues = (
+  product?: ComboProduct,
+  variant?: ComboVariant,
+): TComboFormData => ({
   name: '',
   slug: '',
   shortDescription: '',
@@ -21,7 +24,17 @@ const buildDefaultValues = (product?: ComboProduct): TComboFormData => ({
   deliveryCharge: null,
   deliveryFee: null,
   images: [],
-  items: product ? [{ productId: product.id, quantity: 1, product }] : [],
+  items: product
+    ? [
+        {
+          productId: product.id,
+          variantId: variant?.id ?? null,
+          quantity: 1,
+          product,
+          variant: variant ?? null,
+        },
+      ]
+    : [],
   isFeatured: false,
   isActive: true,
   whatsappMessage: '',
@@ -35,7 +48,7 @@ const CreateComboPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const createCombo = useCreateCombo();
-  const startProduct = (location.state as TCreateComboState)?.product;
+  const start = location.state as TCreateComboState;
 
   const handleSubmit: React.ComponentProps<typeof ComboForm>['onSubmit'] = (
     data,
@@ -45,8 +58,9 @@ const CreateComboPage = () => {
       {
         name: data.name,
         price: data.price,
-        items: data.items.map(({ productId, quantity }) => ({
+        items: data.items.map(({ productId, variantId, quantity }) => ({
           productId,
+          ...(variantId && { variantId }),
           quantity,
         })),
         // Left out, the combo follows the store default
@@ -107,7 +121,7 @@ const CreateComboPage = () => {
 
       <ComboForm
         mode="create"
-        defaultValues={buildDefaultValues(startProduct)}
+        defaultValues={buildDefaultValues(start?.product, start?.variant)}
         isPending={createCombo.isPending}
         onSubmit={handleSubmit}
         onCancel={() => navigate(ROUTES.PRIVATE.COMBOS.ROOT)}

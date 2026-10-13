@@ -147,6 +147,15 @@ const ProductsTable = ({
                     </div>
                     <p className="mt-0.5 truncate font-mono text-xs text-stone-400 dark:text-stone-500">
                       {product.sku ?? product.slug}
+                      {product.variants.length > 0 && (
+                        <span className="font-sans">
+                          {' · '}
+                          {product.variants.length}{' '}
+                          {product.variants.length === 1
+                            ? 'variant'
+                            : 'variants'}
+                        </span>
+                      )}
                     </p>
                   </div>
                 </div>
@@ -155,13 +164,17 @@ const ProductsTable = ({
               <TableCell className="text-right text-sm whitespace-nowrap">
                 <div className="flex flex-col items-end">
                   <span className="font-medium tabular-nums text-stone-900 dark:text-stone-50">
-                    {formatPrice(product.price)}
+                    {product.priceRange &&
+                    product.priceRange.min !== product.priceRange.max
+                      ? `${formatPrice(product.priceRange.min)} – ${formatPrice(product.priceRange.max)}`
+                      : formatPrice(product.price)}
                   </span>
-                  {product.compareAtPrice !== null && (
-                    <span className="text-xs tabular-nums text-stone-400 line-through dark:text-stone-500">
-                      {formatPrice(product.compareAtPrice)}
-                    </span>
-                  )}
+                  {product.variants.length === 0 &&
+                    product.compareAtPrice !== null && (
+                      <span className="text-xs tabular-nums text-stone-400 line-through dark:text-stone-500">
+                        {formatPrice(product.compareAtPrice)}
+                      </span>
+                    )}
                 </div>
               </TableCell>
 

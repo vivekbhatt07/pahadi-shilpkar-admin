@@ -11,6 +11,7 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { EMPTY_MEASUREMENTS, toMeasurementsPayload } from '../helpers';
 import ProductForm from '../layouts/ProductForm';
 import type { TProductFormData } from '../types';
+import { toVariantsPayload } from '../variants';
 
 const DEFAULT_VALUES: TProductFormData = {
   name: '',
@@ -43,6 +44,8 @@ const DEFAULT_VALUES: TProductFormData = {
   metaTitle: '',
   metaDescription: '',
   categoryId: '',
+  variantOptions: [],
+  variants: [],
 };
 
 const CreateProductPage = () => {
@@ -55,11 +58,25 @@ const CreateProductPage = () => {
     form,
   ) => {
     const measurements = toMeasurementsPayload(data.measurements);
+    const hasVariants = data.variantOptions.length > 0;
     createProduct.mutate(
       {
         name: data.name,
-        price: data.price,
         categoryId: data.categoryId,
+        // With variants, the price, stock and availability are theirs
+        ...(hasVariants
+          ? toVariantsPayload({
+              options: data.variantOptions,
+              rows: data.variants,
+            })
+          : {
+              price: data.price,
+              ...(data.compareAtPrice !== null && {
+                compareAtPrice: data.compareAtPrice,
+              }),
+              stock: data.stock,
+              availability: data.availability,
+            }),
         ...(data.slug && { slug: data.slug }),
         ...(data.sku && { sku: data.sku }),
         ...(data.shortDescription && {
@@ -67,9 +84,6 @@ const CreateProductPage = () => {
         }),
         ...(data.description && { description: data.description }),
         highlights: data.highlights,
-        ...(data.compareAtPrice !== null && {
-          compareAtPrice: data.compareAtPrice,
-        }),
         // Left out, the product follows the store default
         ...(data.deliveryCharge !== null && {
           deliveryCharge: data.deliveryCharge,
@@ -87,8 +101,6 @@ const CreateProductPage = () => {
         }),
         specifications: data.specifications,
         tags: data.tags,
-        stock: data.stock,
-        availability: data.availability,
         isFeatured: data.isFeatured,
         isBestseller: data.isBestseller,
         ...(data.whatsappMessage && { whatsappMessage: data.whatsappMessage }),

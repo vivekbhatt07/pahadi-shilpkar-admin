@@ -140,6 +140,84 @@ const measurementsSchema = z
     }
   });
 
+const availabilitySchema = z.enum([
+  'IN_STOCK',
+  'OUT_OF_STOCK',
+  'MADE_TO_ORDER',
+  'COMING_SOON',
+]);
+
+const skuSchema = z
+  .string()
+  .trim()
+  .max(PRODUCT_LIMITS.SKU_MAX, PRODUCT.SKU_MAX)
+  .refine(
+    (value) => value === '' || SKU_REGEX.test(value),
+    PRODUCT.SKU_INVALID,
+  );
+
+/** "Design" and its values, as chips — each value at most once (the input sees to it). */
+const variantOptionSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, PRODUCT.VARIANT_OPTION_NAME_REQUIRED)
+    .max(
+      PRODUCT_LIMITS.VARIANT_OPTION_NAME_MAX,
+      PRODUCT.VARIANT_OPTION_NAME_MAX,
+    ),
+  values: z
+    .array(
+      z
+        .string()
+        .trim()
+        .min(1)
+        .max(
+          PRODUCT_LIMITS.VARIANT_OPTION_VALUE_MAX,
+          PRODUCT.VARIANT_OPTION_VALUE_MAX,
+        ),
+    )
+    .min(1, PRODUCT.VARIANT_OPTION_VALUES_REQUIRED)
+    .max(
+      PRODUCT_LIMITS.VARIANT_OPTION_VALUES_MAX,
+      PRODUCT.VARIANT_OPTION_VALUES_MAX,
+    ),
+});
+
+/** One row of the variants table. */
+const variantSchema = z
+  .object({
+    /** The stored variant's id — null until it's saved. */
+    id: z.string().nullable(),
+    /** One value per option, in the options' order. */
+    values: z.array(z.string()),
+    price: z
+      .number({ error: PRODUCT.PRICE_REQUIRED })
+      .positive(PRODUCT.PRICE_POSITIVE),
+    compareAtPrice: z
+      .number()
+      .positive(PRODUCT.COMPARE_AT_PRICE_POSITIVE)
+      .nullable(),
+    sku: skuSchema,
+    stock: z
+      .number({ error: PRODUCT.STOCK_REQUIRED })
+      .int(PRODUCT.STOCK_INTEGER)
+      .min(0, PRODUCT.STOCK_MIN),
+    availability: availabilitySchema,
+    images: z
+      .array(z.url(URL.INVALID))
+      .max(PRODUCT_LIMITS.VARIANT_IMAGES_MAX, PRODUCT.VARIANT_IMAGES_MAX),
+    isActive: z.boolean(),
+  })
+  .refine(
+    (variant) =>
+      variant.compareAtPrice === null || variant.compareAtPrice > variant.price,
+    {
+      message: PRODUCT.COMPARE_AT_PRICE_GREATER,
+      path: ['compareAtPrice'],
+    },
+  );
+
 /**
  * Shared with the combo and Store settings forms. `null` = not set — a
  * product or combo then follows the store default.
@@ -195,14 +273,7 @@ export const productFormSchema = z
       .trim()
       .max(PRODUCT_LIMITS.SLUG_MAX, PRODUCT.SLUG_MAX)
       .refine((value) => value === '' || SLUG_REGEX.test(value), SLUG.INVALID),
-    [PRODUCT_FORM_FIELD_NAMES.SKU]: z
-      .string()
-      .trim()
-      .max(PRODUCT_LIMITS.SKU_MAX, PRODUCT.SKU_MAX)
-      .refine(
-        (value) => value === '' || SKU_REGEX.test(value),
-        PRODUCT.SKU_INVALID,
-      ),
+    [PRODUCT_FORM_FIELD_NAMES.SKU]: skuSchema,
     [PRODUCT_FORM_FIELD_NAMES.SHORT_DESCRIPTION]: z
       .string()
       .trim()
@@ -220,9 +291,9 @@ export const productFormSchema = z
           .max(PRODUCT_LIMITS.HIGHLIGHT_MAX, PRODUCT.HIGHLIGHT_MAX),
       )
       .max(PRODUCT_LIMITS.HIGHLIGHTS_MAX, PRODUCT.HIGHLIGHTS_MAX),
-    [PRODUCT_FORM_FIELD_NAMES.PRICE]: z
-      .number({ error: PRODUCT.PRICE_REQUIRED })
-      .positive(PRODUCT.PRICE_POSITIVE),
+    // NaN while empty. Checked below — a product with variants has none of
+    // its own to enter.
+    [PRODUCT_FORM_FIELD_NAMES.PRICE]: z.union([z.number(), z.nan()]),
     [PRODUCT_FORM_FIELD_NAMES.COMPARE_AT_PRICE]: z
       .number()
       .positive(PRODUCT.COMPARE_AT_PRICE_POSITIVE)
@@ -262,12 +333,7 @@ export const productFormSchema = z
       .number({ error: PRODUCT.STOCK_REQUIRED })
       .int(PRODUCT.STOCK_INTEGER)
       .min(0, PRODUCT.STOCK_MIN),
-    [PRODUCT_FORM_FIELD_NAMES.AVAILABILITY]: z.enum([
-      'IN_STOCK',
-      'OUT_OF_STOCK',
-      'MADE_TO_ORDER',
-      'COMING_SOON',
-    ]),
+    [PRODUCT_FORM_FIELD_NAMES.AVAILABILITY]: availabilitySchema,
     [PRODUCT_FORM_FIELD_NAMES.IS_FEATURED]: z.boolean(),
     [PRODUCT_FORM_FIELD_NAMES.IS_BESTSELLER]: z.boolean(),
     [PRODUCT_FORM_FIELD_NAMES.IS_ACTIVE]: z.boolean(),
@@ -290,11 +356,74 @@ export const productFormSchema = z
       .string()
       .min(1, PRODUCT.CATEGORY_REQUIRED)
       .pipe(z.uuid(PRODUCT.CATEGORY_REQUIRED)),
+    [PRODUCT_FORM_FIELD_NAMES.VARIANT_OPTIONS]: z
+      .array(variantOptionSchema)
+      .max(PRODUCT_LIMITS.VARIANT_OPTIONS_MAX, PRODUCT.VARIANT_OPTIONS_MAX)
+      // "Size" and "size " are the same option — flag the repeat
+      .superRefine((options, ctx) => {
+        const seen = new Set<string>();
+        options.forEach((option, index) => {
+          const key = option.name.trim().toLowerCase();
+          if (key && seen.has(key)) {
+            ctx.addIssue({
+              code: 'custom',
+              path: [index, 'name'],
+              message: PRODUCT.VARIANT_OPTION_NAME_DUPLICATE,
+            });
+          }
+          seen.add(key);
+        });
+      }),
+    [PRODUCT_FORM_FIELD_NAMES.VARIANTS]: z
+      .array(variantSchema)
+      .max(PRODUCT_LIMITS.VARIANTS_MAX, PRODUCT.VARIANTS_MAX),
   })
-  .refine(
-    (data) => data.compareAtPrice === null || data.compareAtPrice > data.price,
-    {
-      message: PRODUCT.COMPARE_AT_PRICE_GREATER,
-      path: [PRODUCT_FORM_FIELD_NAMES.COMPARE_AT_PRICE],
-    },
-  );
+  .superRefine((data, ctx) => {
+    // With variants, they carry the prices — and each SKU names one thing
+    if (data.variantOptions.length > 0) {
+      if (data.variants.length === 0) {
+        ctx.addIssue({
+          code: 'custom',
+          path: [PRODUCT_FORM_FIELD_NAMES.VARIANTS],
+          message: PRODUCT.VARIANTS_REQUIRED,
+        });
+      }
+      const seen = new Set(data.sku ? [data.sku.trim().toUpperCase()] : []);
+      data.variants.forEach((variant, index) => {
+        const sku = variant.sku.trim().toUpperCase();
+        if (!sku) return;
+        if (seen.has(sku)) {
+          ctx.addIssue({
+            code: 'custom',
+            path: [PRODUCT_FORM_FIELD_NAMES.VARIANTS, index, 'sku'],
+            message: PRODUCT.VARIANT_SKU_DUPLICATE,
+          });
+        }
+        seen.add(sku);
+      });
+      return;
+    }
+
+    if (Number.isNaN(data.price)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: [PRODUCT_FORM_FIELD_NAMES.PRICE],
+        message: PRODUCT.PRICE_REQUIRED,
+      });
+    } else if (data.price <= 0) {
+      ctx.addIssue({
+        code: 'custom',
+        path: [PRODUCT_FORM_FIELD_NAMES.PRICE],
+        message: PRODUCT.PRICE_POSITIVE,
+      });
+    } else if (
+      data.compareAtPrice !== null &&
+      data.compareAtPrice <= data.price
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: [PRODUCT_FORM_FIELD_NAMES.COMPARE_AT_PRICE],
+        message: PRODUCT.COMPARE_AT_PRICE_GREATER,
+      });
+    }
+  });

@@ -1,6 +1,13 @@
 import { ROUTES } from '@/constants/routes';
 import type { TestimonialWithListing } from '@/types/api';
 
+import { TESTIMONIAL_TABS, type TTestimonialTab } from './constants';
+
+export const isTestimonialTab = (
+  value: string | null,
+): value is TTestimonialTab =>
+  TESTIMONIAL_TABS.some((tab) => tab.value === value);
+
 /**
  * The product or combo a testimonial reviews — exactly one is set, so never
  * assume `product` is there. Null only if the API ever sends neither.
@@ -11,6 +18,7 @@ export const getTestimonialListing = (testimonial: TestimonialWithListing) => {
       kind: 'Product' as const,
       name: testimonial.product.name,
       slug: testimonial.product.slug,
+      image: testimonial.product.image,
       to: ROUTES.PRIVATE.PRODUCTS.DETAIL(testimonial.product.slug),
     };
   }
@@ -19,6 +27,7 @@ export const getTestimonialListing = (testimonial: TestimonialWithListing) => {
       kind: 'Combo' as const,
       name: testimonial.combo.name,
       slug: testimonial.combo.slug,
+      image: testimonial.combo.image,
       to: ROUTES.PRIVATE.COMBOS.DETAIL(testimonial.combo.slug),
     };
   }
@@ -33,3 +42,7 @@ export const toDeleteTestimonialVariables = (
   productSlug: testimonial.product?.slug,
   comboSlug: testimonial.combo?.slug,
 });
+
+/** A photo request still waiting for an answer. */
+export const hasPendingPhotoRequest = (testimonial: TestimonialWithListing) =>
+  testimonial.photoRequest?.status === 'PENDING';

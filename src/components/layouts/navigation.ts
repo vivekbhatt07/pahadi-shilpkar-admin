@@ -2,6 +2,7 @@ import {
   FolderTree,
   GalleryHorizontalEnd,
   Gift,
+  Hammer,
   Inbox,
   LayoutDashboard,
   Lock,
@@ -27,7 +28,7 @@ export type TNavItem = {
   /** Extra search terms for the command palette. */
   keywords?: string;
   /** A live count shown beside the item in the sidebar. */
-  badge?: 'newInquiries';
+  badge?: 'newInquiries' | 'testimonialQueue';
 };
 
 export type TNavSection = {
@@ -81,6 +82,12 @@ export const NAV_SECTIONS: TNavSection[] = [
         icon: GalleryHorizontalEnd,
         keywords: 'home page slides carousel hero promotions campaigns',
       },
+      {
+        label: 'How we make it',
+        to: ROUTES.PRIVATE.PROCESS,
+        icon: Hammer,
+        keywords: 'process craft story steps artisans making about page',
+      },
     ],
   },
   {
@@ -97,7 +104,8 @@ export const NAV_SECTIONS: TNavSection[] = [
         label: 'Testimonials',
         to: ROUTES.PRIVATE.TESTIMONIALS,
         icon: MessageSquare,
-        keywords: 'reviews ratings feedback',
+        keywords: 'reviews ratings feedback moderation approve photos',
+        badge: 'testimonialQueue',
       },
       {
         label: 'Customers',

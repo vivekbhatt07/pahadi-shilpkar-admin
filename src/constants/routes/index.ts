@@ -15,6 +15,7 @@ export const ROUTES = {
       EDIT: (slug: string) => `/combos/${slug}/edit`,
     },
     BANNERS: '/banners',
+    PROCESS: '/how-we-make',
     INQUIRIES: '/inquiries',
     TESTIMONIALS: '/testimonials',
     CUSTOMERS: '/customers',

@@ -41,6 +41,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { ROUTES } from '@/constants/routes';
+import { formatPrice } from '@/helpers/format';
 import { useUnsavedChangesWarning } from '@/hooks/useUnsavedChangesWarning';
 import type { Product } from '@/types/api';
 
@@ -51,6 +52,7 @@ import {
   PRODUCT_LIMITS,
 } from '../constants';
 import { productFormSchema } from '../schemas';
+import { summarizeVariantRows } from '../variants';
 import type { TProductFormData, TProductFormMode } from '../types';
 import ColorsField from './ColorsField';
 import DeliveryChargeField from './DeliveryChargeField';
@@ -58,6 +60,7 @@ import HighlightsField from './HighlightsField';
 import MeasurementsField from './MeasurementsField';
 import PurchaseLinksField from './PurchaseLinksField';
 import SpecificationsField from './SpecificationsField';
+import VariantsField from './VariantsField';
 
 type TProductFormProps = {
   mode: TProductFormMode;
@@ -145,6 +148,8 @@ const ProductForm = ({
     META_TITLE,
     META_DESCRIPTION,
     CATEGORY_ID,
+    VARIANT_OPTIONS,
+    VARIANTS,
   } = PRODUCT_FORM_FIELD_NAMES;
 
   const form = useForm<TProductFormData>({
@@ -168,6 +173,10 @@ const ProductForm = ({
   const priceValue = useWatch({ control, name: PRICE });
   const compareAtPriceValue = useWatch({ control, name: COMPARE_AT_PRICE });
   const isActiveValue = useWatch({ control, name: IS_ACTIVE });
+  // With variants, the price, stock and availability are theirs
+  const hasVariants = useWatch({ control, name: VARIANT_OPTIONS }).length > 0;
+  const variantRows = useWatch({ control, name: VARIANTS });
+  const variantSummary = summarizeVariantRows(variantRows);
   // useFormState (not form.formState) so the React Compiler sees fresh state.
   const { isDirty, errors } = useFormState({ control });
   useUnsavedChangesWarning(isDirty && !isPending);
@@ -362,6 +371,19 @@ const ProductForm = ({
                     </FormItem>
                   )}
                 />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Variants</CardTitle>
+                <CardDescription>
+                  Versions shoppers pick between — a thali in several designs, a
+                  shawl in two sizes. Each has its own price, stock and photos.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <VariantsField disabled={isPending} />
               </CardContent>
             </Card>
 
@@ -626,133 +648,171 @@ const ProductForm = ({
                 <CardTitle>Pricing & stock</CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col gap-4">
-                <FormField
-                  control={form.control}
-                  name={PRICE}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel required>Price</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          inputMode="decimal"
-                          min={0}
-                          step="0.01"
-                          placeholder="0.00"
-                          disabled={isPending}
-                          startAdornment={<RupeePrefix />}
-                          name={field.name}
-                          ref={field.ref}
-                          onBlur={field.onBlur}
-                          value={numberValue(field.value)}
-                          onChange={(event) => field.onChange(toNumber(event))}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name={COMPARE_AT_PRICE}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel optional>Compare-at price</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          inputMode="decimal"
-                          min={0}
-                          step="0.01"
-                          placeholder="MRP / strike-through price"
-                          disabled={isPending}
-                          startAdornment={<RupeePrefix />}
-                          name={field.name}
-                          ref={field.ref}
-                          onBlur={field.onBlur}
-                          value={nullableNumberValue(field.value)}
-                          onChange={(event) =>
-                            field.onChange(toNullableNumber(event))
-                          }
-                        />
-                      </FormControl>
-                      {liveDiscount !== null && (
-                        <FormDescription className="flex animate-in items-center gap-1.5 fade-in-0">
-                          Storefront shows a
-                          <Badge variant="destructive">
-                            {liveDiscount}% off
-                          </Badge>
-                          badge.
-                        </FormDescription>
+                {hasVariants && (
+                  <div className="flex flex-col gap-1.5 rounded-lg bg-stone-50 p-3 text-sm dark:bg-stone-900/60">
+                    <p className="font-medium text-stone-900 dark:text-stone-50">
+                      Priced per variant
+                    </p>
+                    <p className="text-stone-600 tabular-nums dark:text-stone-300">
+                      {variantSummary.minPrice === null
+                        ? 'No prices yet'
+                        : variantSummary.minPrice === variantSummary.maxPrice
+                          ? formatPrice(variantSummary.minPrice)
+                          : `${formatPrice(variantSummary.minPrice)} – ${formatPrice(variantSummary.maxPrice!)}`}
+                      {' · '}
+                      {variantSummary.stock} in stock
+                    </p>
+                    <p className="text-xs text-stone-400 dark:text-stone-500">
+                      Price, stock and availability come from the variants:
+                      shoppers see the lowest price, and the product shows as
+                      available while any variant is.
+                    </p>
+                  </div>
+                )}
+                {!hasVariants && (
+                  <>
+                    <FormField
+                      control={form.control}
+                      name={PRICE}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel required>Price</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              inputMode="decimal"
+                              min={0}
+                              step="0.01"
+                              placeholder="0.00"
+                              disabled={isPending}
+                              startAdornment={<RupeePrefix />}
+                              name={field.name}
+                              ref={field.ref}
+                              onBlur={field.onBlur}
+                              value={numberValue(field.value)}
+                              onChange={(event) =>
+                                field.onChange(toNumber(event))
+                              }
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
                       )}
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name={COMPARE_AT_PRICE}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel optional>Compare-at price</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              inputMode="decimal"
+                              min={0}
+                              step="0.01"
+                              placeholder="MRP / strike-through price"
+                              disabled={isPending}
+                              startAdornment={<RupeePrefix />}
+                              name={field.name}
+                              ref={field.ref}
+                              onBlur={field.onBlur}
+                              value={nullableNumberValue(field.value)}
+                              onChange={(event) =>
+                                field.onChange(toNullableNumber(event))
+                              }
+                            />
+                          </FormControl>
+                          {liveDiscount !== null && (
+                            <FormDescription className="flex animate-in items-center gap-1.5 fade-in-0">
+                              Storefront shows a
+                              <Badge variant="destructive">
+                                {liveDiscount}% off
+                              </Badge>
+                              badge.
+                            </FormDescription>
+                          )}
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </>
+                )}
 
                 <DeliveryChargeField scope="listing" disabled={isPending} />
 
-                <FormField
-                  control={form.control}
-                  name={STOCK}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel required>Stock</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          inputMode="numeric"
-                          min={0}
-                          step={1}
-                          placeholder="0"
-                          disabled={isPending}
-                          name={field.name}
-                          ref={field.ref}
-                          onBlur={field.onBlur}
-                          value={numberValue(field.value)}
-                          onChange={(event) => field.onChange(toNumber(event))}
-                        />
-                      </FormControl>
-                      <FormDescription>Whole units available.</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {!hasVariants && (
+                  <>
+                    <FormField
+                      control={form.control}
+                      name={STOCK}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel required>Stock</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              inputMode="numeric"
+                              min={0}
+                              step={1}
+                              placeholder="0"
+                              disabled={isPending}
+                              name={field.name}
+                              ref={field.ref}
+                              onBlur={field.onBlur}
+                              value={numberValue(field.value)}
+                              onChange={(event) =>
+                                field.onChange(toNumber(event))
+                              }
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Whole units available.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                <FormField
-                  control={form.control}
-                  name={AVAILABILITY}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel required>Availability</FormLabel>
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                        disabled={isPending}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {AVAILABILITY_OPTIONS.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormDescription>
-                        Independent of stock — set this to what buyers should
-                        see. Saving as In stock or Made to order emails anyone
-                        waiting on a “Notify me” alert.
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                    <FormField
+                      control={form.control}
+                      name={AVAILABILITY}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel required>Availability</FormLabel>
+                          <Select
+                            value={field.value}
+                            onValueChange={field.onChange}
+                            disabled={isPending}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {AVAILABILITY_OPTIONS.map((option) => (
+                                <SelectItem
+                                  key={option.value}
+                                  value={option.value}
+                                >
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormDescription>
+                            Independent of stock — set this to what buyers
+                            should see. Saving as In stock or Made to order
+                            emails anyone waiting on a “Notify me” alert.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </>
+                )}
               </CardContent>
             </Card>
 

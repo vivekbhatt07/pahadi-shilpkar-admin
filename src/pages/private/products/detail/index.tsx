@@ -8,6 +8,7 @@ import {
   ExternalLink,
   FolderTree,
   Gift,
+  Layers,
   MessageCircle,
   PackageX,
   Pencil,
@@ -38,11 +39,13 @@ import {
 } from '@/hooks/products';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { cn } from '@/lib/utils';
+import type { Product } from '@/types/api';
 
 import {
   comboImages,
   isComboHidden,
   toComboProduct,
+  toComboVariant,
 } from '../../combos/helpers';
 import { PRODUCT_DETAIL_COMBOS_LIMIT } from '../../combos/constants';
 import type { TCreateComboState } from '../../combos/types';
@@ -65,6 +68,74 @@ const DetailField = ({
       {label}
     </dt>
     <dd className="text-sm text-stone-700 dark:text-stone-300">{children}</dd>
+  </div>
+);
+
+/** Each variant at a glance — what's on sale, at what price, how many left. */
+const VariantsTable = ({ product }: { product: Product }) => (
+  <div className="overflow-x-auto">
+    <table className="w-full min-w-[34rem] text-sm">
+      <thead>
+        <tr className="border-b border-stone-100 text-left text-[11px] font-semibold tracking-wider text-stone-400 uppercase dark:border-stone-800 dark:text-stone-500">
+          <th className="py-2 pr-3 pl-3 font-semibold sm:pl-4 md:pl-6">
+            Variant
+          </th>
+          <th className="px-3 py-2 font-semibold">SKU</th>
+          <th className="px-3 py-2 text-right font-semibold">Price</th>
+          <th className="px-3 py-2 text-right font-semibold">Stock</th>
+          <th className="py-2 pr-3 pl-3 font-semibold sm:pr-4 md:pr-6">
+            Availability
+          </th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
+        {product.variants.map((variant) => (
+          <tr key={variant.id}>
+            <td className="py-2.5 pr-3 pl-3 sm:pl-4 md:pl-6">
+              <div className="flex items-center gap-2.5">
+                <ImageThumb
+                  src={variant.images[0] ?? product.images[0]}
+                  alt=""
+                  className="size-8"
+                />
+                <span
+                  className={cn(
+                    'font-medium',
+                    variant.isActive
+                      ? 'text-stone-900 dark:text-stone-50'
+                      : 'text-stone-400 dark:text-stone-500',
+                  )}
+                >
+                  {variant.title}
+                </span>
+                {!variant.isActive && <Badge variant="secondary">Hidden</Badge>}
+              </div>
+            </td>
+            <td className="px-3 py-2.5 font-mono text-xs text-stone-500 dark:text-stone-400">
+              {variant.sku ?? '—'}
+            </td>
+            <td className="px-3 py-2.5 text-right tabular-nums">
+              <span className="font-medium text-stone-900 dark:text-stone-50">
+                {formatPrice(variant.price)}
+              </span>
+              {variant.compareAtPrice !== null && (
+                <span className="ml-1.5 text-xs text-stone-400 line-through">
+                  {formatPrice(variant.compareAtPrice)}
+                </span>
+              )}
+            </td>
+            <td className="px-3 py-2.5 text-right tabular-nums text-stone-700 dark:text-stone-300">
+              {variant.stock}
+            </td>
+            <td className="py-2.5 pr-3 pl-3 sm:pr-4 md:pr-6">
+              <Badge variant={availabilityVariant(variant.availability)}>
+                {AVAILABILITY_LABELS[variant.availability]}
+              </Badge>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   </div>
 );
 
@@ -119,6 +190,8 @@ const ProductDetailPage = () => {
   }
 
   const item = product.data;
+  const firstVariant =
+    item.variants.find((variant) => variant.isActive) ?? item.variants[0];
   // "Round · Diameter 30 cm × Height 2 cm", then the admin's note, if any.
   const [dimensionsLine, ...dimensionsNote] =
     item.dimensions?.split('\n') ?? [];
@@ -238,18 +311,29 @@ const ProductDetailPage = () => {
             <CardContent>
               <div className="flex flex-wrap items-end gap-x-3 gap-y-1">
                 <span className="text-3xl font-semibold tracking-tight tabular-nums text-stone-900 dark:text-stone-50">
-                  {formatPrice(item.price)}
+                  {item.priceRange &&
+                  item.priceRange.min !== item.priceRange.max
+                    ? `${formatPrice(item.priceRange.min)} – ${formatPrice(item.priceRange.max)}`
+                    : formatPrice(item.price)}
                 </span>
-                {item.compareAtPrice !== null && (
+                {item.variants.length > 0 && (
+                  <Badge variant="secondary" className="mb-1.5">
+                    <Layers />
+                    {item.variants.length}{' '}
+                    {item.variants.length === 1 ? 'variant' : 'variants'}
+                  </Badge>
+                )}
+                {item.variants.length === 0 && item.compareAtPrice !== null && (
                   <span className="pb-1 text-sm tabular-nums text-stone-400 line-through dark:text-stone-500">
                     {formatPrice(item.compareAtPrice)}
                   </span>
                 )}
-                {item.discountPercentage !== null && (
-                  <Badge variant="destructive" className="mb-1.5">
-                    {item.discountPercentage}% off
-                  </Badge>
-                )}
+                {item.variants.length === 0 &&
+                  item.discountPercentage !== null && (
+                    <Badge variant="destructive" className="mb-1.5">
+                      {item.discountPercentage}% off
+                    </Badge>
+                  )}
               </div>
 
               <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-5 border-t border-stone-100 pt-5 sm:grid-cols-3 dark:border-stone-800">
@@ -304,6 +388,25 @@ const ProductDetailPage = () => {
               </dl>
             </CardContent>
           </Card>
+
+          {item.variants.length > 0 && (
+            <Card className="gap-0 sm:gap-0 md:gap-0">
+              <CardHeader className="border-b border-stone-100 pb-3 dark:border-stone-800">
+                <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                  <Layers className="size-4 text-stone-400" />
+                  Variants
+                  <span className="font-normal text-stone-400">
+                    {item.variantOptions
+                      .map((option) => option.name)
+                      .join(' × ')}
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-0 sm:px-0 md:px-0">
+                <VariantsTable product={item} />
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardHeader>
@@ -496,6 +599,10 @@ const ProductDetailPage = () => {
                   state={
                     {
                       product: toComboProduct(item),
+                      // A product with variants starts on its first live one
+                      ...(firstVariant && {
+                        variant: toComboVariant(firstVariant),
+                      }),
                     } satisfies TCreateComboState
                   }
                 >
@@ -512,10 +619,25 @@ const ProductDetailPage = () => {
               ) : (
                 <ul className="divide-y divide-stone-100 dark:divide-stone-800">
                   {item.combos.map((combo) => {
-                    const quantity =
-                      combo.items.find(
-                        (comboItem) => comboItem.productId === item.id,
-                      )?.quantity ?? 1;
+                    // This product's items — one per variant it's in as
+                    const own = combo.items.filter(
+                      (comboItem) => comboItem.productId === item.id,
+                    );
+                    const quantity = own.reduce(
+                      (sum, comboItem) => sum + comboItem.quantity,
+                      0,
+                    );
+                    const variantTitles = own
+                      .flatMap((comboItem) =>
+                        comboItem.variant
+                          ? [
+                              comboItem.quantity > 1
+                                ? `${comboItem.variant.title} × ${comboItem.quantity}`
+                                : comboItem.variant.title,
+                            ]
+                          : [],
+                      )
+                      .join(', ');
                     return (
                       <li key={combo.id}>
                         <Link
@@ -539,9 +661,11 @@ const ProductDetailPage = () => {
                               )}
                             </div>
                             <p className="mt-0.5 text-xs text-stone-400 dark:text-stone-500">
-                              {quantity > 1
-                                ? `${quantity} × this product · `
-                                : ''}
+                              {variantTitles
+                                ? `${variantTitles} · `
+                                : quantity > 1
+                                  ? `${quantity} × this product · `
+                                  : ''}
                               {combo.itemCount} items in total
                             </p>
                           </div>

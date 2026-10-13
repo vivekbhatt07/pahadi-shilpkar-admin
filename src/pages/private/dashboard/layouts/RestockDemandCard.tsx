@@ -16,8 +16,8 @@ import {
 import ListSkeletonRows from './ListSkeletonRows';
 
 /**
- * Products shoppers asked to be emailed about ("Notify me"), most wanted
- * first — what to make or restock next. Rows open the edit form: saving one
+ * Products — or variants of them — shoppers asked to be emailed about
+ * ("Notify me"), most wanted first: what to make or restock next. Rows open the edit form: saving one
  * as In stock or Made to order emails everyone waiting and clears it from
  * this list.
  */
@@ -55,20 +55,26 @@ const RestockDemandCard = () => {
           />
         ) : (
           <ul className="divide-y divide-stone-100 dark:divide-stone-800">
-            {data.products.map(({ product, waiting, since }) => (
-              <li key={product.id}>
+            {data.products.map(({ product, variant, waiting, since }) => (
+              <li key={`${product.id}-${variant?.id ?? ''}`}>
                 <RouterLink
                   to={ROUTES.PRIVATE.PRODUCTS.EDIT(product.slug)}
                   className="group flex items-center gap-3 px-3 py-3 transition-colors outline-none hover:bg-stone-50 focus-visible:bg-stone-50 sm:px-4 md:px-6 dark:hover:bg-stone-800/40 dark:focus-visible:bg-stone-800/40"
                 >
                   <ImageThumb
-                    src={product.images[0]}
+                    src={variant?.images[0] ?? product.images[0]}
                     alt={product.name}
                     className="size-10"
                   />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-stone-900 group-hover:text-accent-600 dark:text-stone-50 dark:group-hover:text-accent-400">
                       {product.name}
+                      {variant && (
+                        <span className="font-normal text-stone-500 dark:text-stone-400">
+                          {' '}
+                          — {variant.title}
+                        </span>
+                      )}
                     </p>
                     <p className="mt-0.5 truncate text-xs text-stone-400 dark:text-stone-500">
                       Waiting since {formatDate(since)}
@@ -78,8 +84,12 @@ const RestockDemandCard = () => {
                     {!product.isActive && (
                       <Badge variant="secondary">Inactive</Badge>
                     )}
-                    <Badge variant={availabilityVariant(product.availability)}>
-                      {AVAILABILITY_LABELS[product.availability]}
+                    <Badge
+                      variant={availabilityVariant(
+                        (variant ?? product).availability,
+                      )}
+                    >
+                      {AVAILABILITY_LABELS[(variant ?? product).availability]}
                     </Badge>
                   </div>
                   <span className="shrink-0 text-right text-sm font-semibold whitespace-nowrap text-stone-900 tabular-nums dark:text-stone-50">

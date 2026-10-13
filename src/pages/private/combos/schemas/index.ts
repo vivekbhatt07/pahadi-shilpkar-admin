@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { VALIDATION_MESSAGES } from '@/constants/messages/shared';
 import { SLUG_REGEX } from '@/constants/regex';
-import type { ComboProduct } from '@/types/api';
+import type { ComboProduct, ComboVariant } from '@/types/api';
 import { PRODUCT_LIMITS } from '../../products/constants';
 import {
   deliveryChargeSchema,
@@ -15,13 +15,16 @@ const { COMBO, PRODUCT, URL, SLUG } = VALIDATION_MESSAGES;
 
 const comboItemSchema = z.object({
   productId: z.uuid(),
+  /** The variant picked — set for a product that comes in variants. */
+  variantId: z.string().nullable(),
   quantity: z
     .number({ error: COMBO.QUANTITY_REQUIRED })
     .int(COMBO.QUANTITY_INTEGER)
     .min(1, COMBO.QUANTITY_RANGE)
     .max(COMBO_LIMITS.QUANTITY_MAX, COMBO.QUANTITY_RANGE),
-  /** Snapshot for display only — never sent to the API. */
+  /** Snapshots for display only — never sent to the API. */
   product: z.custom<ComboProduct>(),
+  variant: z.custom<ComboVariant>().nullable(),
 });
 
 export const comboFormSchema = z.object({

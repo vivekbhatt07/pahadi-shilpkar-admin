@@ -24,7 +24,7 @@ import {
   availabilityVariant,
 } from '../../products/helpers';
 import { COMBO_HIDDEN_BY_PRODUCT_WARNING } from '../constants';
-import { comboImages, hasInactiveProduct } from '../helpers';
+import { comboImages, hasInactiveItem } from '../helpers';
 
 type TCombosTableProps = {
   combos: Combo[];
@@ -63,7 +63,7 @@ const CombosTable = ({
       </TableHeader>
       <TableBody>
         {combos.map((combo) => {
-          const blockedByProduct = hasInactiveProduct(combo);
+          const blockedByProduct = hasInactiveItem(combo);
           const isHidden = !combo.isActive || blockedByProduct;
 
           return (

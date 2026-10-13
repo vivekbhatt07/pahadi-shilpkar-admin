@@ -46,6 +46,7 @@ export const EditComboPage = lazyPage(
   () => import('@/pages/private/combos/edit'),
 );
 export const BannersPage = lazyPage(() => import('@/pages/private/banners'));
+export const ProcessPage = lazyPage(() => import('@/pages/private/process'));
 export const InquiriesPage = lazyPage(
   () => import('@/pages/private/inquiries'),
 );
