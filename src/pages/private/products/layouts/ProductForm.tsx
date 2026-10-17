@@ -379,7 +379,8 @@ const ProductForm = ({
                 <CardTitle>Variants</CardTitle>
                 <CardDescription>
                   Versions shoppers pick between — a thali in several designs, a
-                  shawl in two sizes. Each has its own price, stock and photos.
+                  shawl in two sizes or colours. Each has its own price, stock
+                  and photos, and can have its own size and weight.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -458,7 +459,7 @@ const ProductForm = ({
 
                 <FormSubsection
                   title="Colours"
-                  description="The colours this piece is made in, shown as swatches in this order. A piece in another colour is a separate product — duplicate it."
+                  description="The colours this piece is made in, shown as swatches in this order. When shoppers should pick a colour, add a Colour option with swatches under Variants instead."
                 >
                   <ColorsField disabled={isPending} />
                 </FormSubsection>

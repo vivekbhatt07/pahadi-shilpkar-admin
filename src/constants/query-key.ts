@@ -40,6 +40,9 @@ export const QUERY_KEYS = {
    * save can email waiting shoppers and clear their alerts.
    */
   STOCK_ALERT_STATS: ['stats', 'stock-alerts'] as const,
+  /** Under STATS too — a restock emails waiting shoppers and clears their alerts. */
+  PRODUCT_DEMAND: (productId: string, days: number) =>
+    ['stats', 'product-demand', productId, days] as const,
   /** Deliberately not under STATS — admin writes never change storefront clicks. */
   BUY_CLICK_STATS: (days: number) => ['buy-click-stats', days] as const,
   TESTIMONIALS: {

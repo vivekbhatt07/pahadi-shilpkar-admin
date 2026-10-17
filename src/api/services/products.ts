@@ -8,6 +8,7 @@ import type {
   ProductDetail,
   ProductListParams,
   UpdateProductPayload,
+  UpdateVariantPayload,
 } from '@/types/api';
 
 const toQuery = (params: ProductListParams) => {
@@ -59,6 +60,23 @@ export const productsService = {
   update: async (id: string, payload: UpdateProductPayload) => {
     const { data } = await api.patch<ApiResponse<Product>>(
       `/products/${id}`,
+      payload,
+    );
+    return data;
+  },
+
+  /**
+   * One variant's price, compare-at price, stock, availability or on/off,
+   * without sending the whole list. Answers with the whole product, its
+   * derived price, stock and availability updated.
+   */
+  updateVariant: async (
+    productId: string,
+    variantId: string,
+    payload: UpdateVariantPayload,
+  ) => {
+    const { data } = await api.patch<ApiResponse<Product>>(
+      `/products/${productId}/variants/${variantId}`,
       payload,
     );
     return data;

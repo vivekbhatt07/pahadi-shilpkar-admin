@@ -5,6 +5,12 @@ import type {
   VariantOption,
 } from '@/types/api';
 
+import { PRODUCT_LIMITS } from './constants';
+import {
+  EMPTY_MEASUREMENTS,
+  toMeasurementsFormValue,
+  toMeasurementsPayload,
+} from './helpers';
 import type { TVariantFormValue, TVariantOptionFormValue } from './types';
 
 /**
@@ -32,10 +38,18 @@ export const variantRowTitle = (row: TVariantFormValue) =>
 export const sameText = (a: string, b: string) =>
   a.trim().toLowerCase() === b.trim().toLowerCase();
 
+/** `list` with the item at `from` moved to `to`. */
+const moveItem = <T>(list: T[], from: number, to: number): T[] => {
+  const next = [...list];
+  const [item] = next.splice(from, 1);
+  next.splice(to, 0, item);
+  return next;
+};
+
 /**
  * A row for a new combination. It starts with the price and availability of
  * `like` — an existing variant — so a new design isn't blank; never its SKU,
- * stock or photos, which belong to one variant only.
+ * stock, photos or size, which belong to one variant only.
  */
 const newRow = (
   values: string[],
@@ -49,6 +63,8 @@ const newRow = (
   stock: 0,
   availability: like?.availability ?? 'IN_STOCK',
   images: [],
+  measurements: EMPTY_MEASUREMENTS,
+  weight: '',
   isActive: true,
 });
 
@@ -81,7 +97,7 @@ const sortRows = (
 
 /** Starts a new option, with no values yet. */
 export const addOption = (state: TVariantsState): TVariantsState => ({
-  options: [...state.options, { name: '', values: [] }],
+  options: [...state.options, { name: '', values: [], swatches: null }],
   rows: state.rows.map((row) => ({ ...row, values: [...row.values, ''] })),
 });
 
@@ -95,6 +111,25 @@ export const renameOption = (
     i === index ? { ...option, name } : option,
   ),
 });
+
+/**
+ * Moves an option up or down. Shoppers see the options in this order — and
+ * the first one as photos, when every value has a variant with one — and
+ * the variants are listed (and titled) in it.
+ */
+export const moveOption = (
+  state: TVariantsState,
+  from: number,
+  to: number,
+): TVariantsState => {
+  if (to < 0 || to >= state.options.length || from === to) return state;
+  const options = moveItem(state.options, from, to);
+  const rows = state.rows.map((row) => ({
+    ...row,
+    values: moveItem(row.values, from, to),
+  }));
+  return { options, rows: sortRows(options, rows) };
+};
 
 /**
  * Drops an option. Variants that differed only by it become one — the first
@@ -157,7 +192,7 @@ export const addOptionValue = (
 
 /**
  * Renames a value everywhere it's used — the variants keep their ids, so a
- * typo fixed doesn't break a combo selling the variant.
+ * typo fixed doesn't break a combo selling the variant. Its swatch goes with it.
  */
 export const renameOptionValue = (
   state: TVariantsState,
@@ -170,6 +205,14 @@ export const renameOptionValue = (
       ? {
           ...option,
           values: option.values.map((value) => (value === from ? to : value)),
+          swatches:
+            option.swatches &&
+            Object.fromEntries(
+              Object.entries(option.swatches).map(([value, hex]) => [
+                value === from ? to : value,
+                hex,
+              ]),
+            ),
         }
       : option,
   ),
@@ -177,6 +220,21 @@ export const renameOptionValue = (
     row.values[index] === from ? withValueAt(row, index, to) : row,
   ),
 });
+
+/** Moves a value within its option — the picker's order, and the variants'. */
+export const moveOptionValue = (
+  state: TVariantsState,
+  index: number,
+  from: number,
+  to: number,
+): TVariantsState => {
+  const options = state.options.map((option, i) =>
+    i === index
+      ? { ...option, values: moveItem(option.values, from, to) }
+      : option,
+  );
+  return { options, rows: sortRows(options, state.rows) };
+};
 
 /**
  * Removes a value and the variants that have it. The last value of an option
@@ -189,7 +247,15 @@ export const removeOptionValue = (
 ): TVariantsState => {
   const options = state.options.map((option, i) =>
     i === index
-      ? { ...option, values: option.values.filter((v) => v !== value) }
+      ? {
+          ...option,
+          values: option.values.filter((v) => v !== value),
+          swatches:
+            option.swatches &&
+            Object.fromEntries(
+              Object.entries(option.swatches).filter(([v]) => v !== value),
+            ),
+        }
       : option,
   );
 
@@ -205,6 +271,163 @@ export const removeOptionValue = (
   };
 };
 
+/**
+ * Shows an option's values as colour swatches — or stops. Turned on, it
+ * starts without colours; each value then needs one before the form saves.
+ */
+export const setSwatchesOn = (
+  state: TVariantsState,
+  index: number,
+  on: boolean,
+): TVariantsState => ({
+  ...state,
+  options: state.options.map((option, i) =>
+    i === index
+      ? { ...option, swatches: on ? (option.swatches ?? {}) : null }
+      : option,
+  ),
+});
+
+export const setSwatch = (
+  state: TVariantsState,
+  index: number,
+  value: string,
+  hex: string,
+): TVariantsState => ({
+  ...state,
+  options: state.options.map((option, i) =>
+    i === index
+      ? { ...option, swatches: { ...(option.swatches ?? {}), [value]: hex } }
+      : option,
+  ),
+});
+
+/**
+ * The combinations of the options' values that no variant has — removed
+ * from the table, or never made. Empty while an option has no values yet.
+ */
+export const missingCombinations = ({
+  options,
+  rows,
+}: TVariantsState): string[][] => {
+  if (
+    options.length === 0 ||
+    options.some((option) => option.values.length === 0)
+  ) {
+    return [];
+  }
+  const existing = new Set(rows.map((row) => keyOf(row.values)));
+  return combinations(options.map((option) => option.values)).filter(
+    (values) => !existing.has(keyOf(values)),
+  );
+};
+
+/** Brings combinations back as new variants, priced like the first one. */
+export const addCombinations = (
+  state: TVariantsState,
+  combos: string[][],
+): TVariantsState => ({
+  ...state,
+  rows: sortRows(state.options, [
+    ...state.rows,
+    ...combos.map((values) => newRow(values, state.rows[0])),
+  ]),
+});
+
+/**
+ * Which variants a bulk edit changes: every one (`null`), or those with one
+ * value of an option — "every Large one".
+ */
+export type TVariantScope = { optionIndex: number; value: string } | null;
+
+export const inScope = (row: TVariantFormValue, scope: TVariantScope) =>
+  scope === null || row.values[scope.optionIndex] === scope.value;
+
+/**
+ * The other variants that share the row's value of an option — the ones
+ * "use these photos for every Peacock" would change.
+ */
+export const siblingIndexes = (
+  rows: TVariantFormValue[],
+  rowIndex: number,
+  optionIndex: number,
+) =>
+  rows.flatMap((row, i) =>
+    i !== rowIndex &&
+    row.values[optionIndex] === rows[rowIndex].values[optionIndex]
+      ? [i]
+      : [],
+  );
+
+/** Gives the row's photos to every variant that shares its value of an option. */
+export const copyPhotosToSiblings = (
+  state: TVariantsState,
+  rowIndex: number,
+  optionIndex: number,
+): TVariantsState => {
+  const siblings = new Set(siblingIndexes(state.rows, rowIndex, optionIndex));
+  const images = state.rows[rowIndex].images;
+  return {
+    ...state,
+    rows: state.rows.map((row, i) =>
+      siblings.has(i) ? { ...row, images: [...images] } : row,
+    ),
+  };
+};
+
+/** "Peacock blue" → "PEACOCK-BLUE": letters and digits, joined by hyphens. */
+const skuPart = (text: string) =>
+  text
+    .normalize('NFKD')
+    .replace(/[̀-ͯ]/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+const trimSku = (sku: string, max: number) =>
+  sku.slice(0, max).replace(/-+$/, '');
+
+/** A SKU prefix from the product's SKU or name — "Karwa Chauth Thali" → "KARWA-CHAUTH-THALI". */
+export const skuPrefixFrom = (text: string) => trimSku(skuPart(text), 24);
+
+/**
+ * SKUs for the variants: the prefix and each value — "THALI-PEACOCK-LARGE".
+ * Kept within the SKU limit and unique among the variants and the product;
+ * a clash gets "-2", "-3". With `keepExisting`, a variant that has a SKU
+ * keeps it. The server still checks them against every other product.
+ */
+export const generateSkus = (
+  rows: TVariantFormValue[],
+  prefix: string,
+  {
+    keepExisting,
+    productSku = '',
+  }: { keepExisting: boolean; productSku?: string },
+): TVariantFormValue[] => {
+  const max = PRODUCT_LIMITS.SKU_MAX;
+  const head = skuPart(prefix);
+  const taken = new Set<string>();
+  if (productSku.trim()) taken.add(productSku.trim().toUpperCase());
+  if (keepExisting) {
+    rows.forEach((row) => {
+      if (row.sku.trim()) taken.add(row.sku.trim().toUpperCase());
+    });
+  }
+
+  return rows.map((row, index) => {
+    if (keepExisting && row.sku.trim()) return row;
+    const parts = [head, ...row.values.map(skuPart)].filter(Boolean);
+    const base = trimSku(parts.join('-') || `V${index + 1}`, max);
+    let sku = base;
+    for (let n = 2; taken.has(sku); n++) {
+      const suffix = `-${n}`;
+      sku = `${trimSku(base, max - suffix.length)}${suffix}`;
+    }
+    taken.add(sku);
+    return { ...row, sku };
+  });
+};
+
 /** A stored product's variants as the editor holds them. */
 export const toVariantsFormValue = (
   product: Pick<Product, 'variantOptions' | 'variants'>,
@@ -212,6 +435,7 @@ export const toVariantsFormValue = (
   options: product.variantOptions.map((option) => ({
     name: option.name,
     values: [...option.values],
+    swatches: option.swatches ? { ...option.swatches } : null,
   })),
   rows: product.variants.map((variant) => ({
     id: variant.id,
@@ -224,6 +448,9 @@ export const toVariantsFormValue = (
     stock: variant.stock,
     availability: variant.availability,
     images: [...variant.images],
+    // A backend from before variant sizes leaves both out
+    measurements: toMeasurementsFormValue(variant.measurements ?? null),
+    weight: variant.weight ?? '',
     isActive: variant.isActive,
   })),
 });
@@ -236,10 +463,20 @@ export const toVariantsPayload = ({
   variantOptions: VariantOption[];
   variants: ProductVariantPayload[];
 } => ({
-  variantOptions: options.map((option) => ({
-    name: option.name.trim(),
-    values: option.values,
-  })),
+  variantOptions: options.map((option) => {
+    const { swatches } = option;
+    return {
+      name: option.name.trim(),
+      values: option.values,
+      // The form only saves with a colour for every value
+      ...(swatches &&
+        option.values.length > 0 && {
+          swatches: Object.fromEntries(
+            option.values.map((value) => [value, swatches[value]]),
+          ),
+        }),
+    };
+  }),
   variants: rows.map((row) => ({
     ...(row.id && { id: row.id }),
     options: Object.fromEntries(
@@ -251,6 +488,8 @@ export const toVariantsPayload = ({
     stock: row.stock,
     availability: row.availability,
     images: row.images,
+    measurements: toMeasurementsPayload(row.measurements),
+    weight: row.weight.trim() || null,
     isActive: row.isActive,
   })),
 });

@@ -7,12 +7,14 @@ import { cn } from '@/lib/utils';
 type TProductGalleryProps = {
   images: string[];
   name: string;
+  /** Under the thumbnails — e.g. which variant's photos these are. */
+  caption?: React.ReactNode;
 };
 
 const navButtonClass =
   'absolute top-1/2 flex size-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/40 bg-white/80 text-stone-700 shadow-md backdrop-blur transition-all duration-200 hover:bg-white focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent-500/30 dark:border-stone-700 dark:bg-stone-900/80 dark:text-stone-200 dark:hover:bg-stone-900 opacity-0 group-hover:opacity-100';
 
-const ProductGallery = ({ images, name }: TProductGalleryProps) => {
+const ProductGallery = ({ images, name, caption }: TProductGalleryProps) => {
   const [active, setActive] = useState(0);
   const count = images.length;
   const current = images[active] ?? images[0];
@@ -88,6 +90,7 @@ const ProductGallery = ({ images, name }: TProductGalleryProps) => {
           ))}
         </div>
       )}
+      {caption}
     </div>
   );
 };

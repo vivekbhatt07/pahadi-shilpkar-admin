@@ -7,6 +7,7 @@ import type {
 import {
   AVAILABILITY_OPTIONS,
   DEFAULT_MEASUREMENT_UNIT,
+  LOW_STOCK_THRESHOLD,
   SHAPE_OPTIONS,
   SHAPE_SIZES,
   SIZE_LABELS,
@@ -26,6 +27,23 @@ export const availabilityVariant = (availability: ProductAvailability) =>
     MADE_TO_ORDER: 'accent',
     COMING_SOON: 'warning',
   })[availability] as 'success' | 'destructive' | 'accent' | 'warning';
+
+/**
+ * A stock count worth a second look: shown to shoppers as in stock with
+ * none left, or with only a few. Made-to-order, sold-out and coming-soon
+ * pieces aren't sold from stock, so their count is never flagged.
+ */
+export const stockFlag = (
+  availability: ProductAvailability,
+  stock: number,
+): 'empty' | 'low' | null =>
+  availability !== 'IN_STOCK'
+    ? null
+    : stock === 0
+      ? 'empty'
+      : stock <= LOW_STOCK_THRESHOLD
+        ? 'low'
+        : null;
 
 export const SHAPE_LABELS = Object.fromEntries(
   SHAPE_OPTIONS.map((option) => [option.value, option.label]),

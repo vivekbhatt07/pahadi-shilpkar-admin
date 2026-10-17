@@ -157,32 +157,46 @@ const skuSchema = z
   );
 
 /** "Design" and its values, as chips — each value at most once (the input sees to it). */
-const variantOptionSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(1, PRODUCT.VARIANT_OPTION_NAME_REQUIRED)
-    .max(
-      PRODUCT_LIMITS.VARIANT_OPTION_NAME_MAX,
-      PRODUCT.VARIANT_OPTION_NAME_MAX,
-    ),
-  values: z
-    .array(
-      z
-        .string()
-        .trim()
-        .min(1)
-        .max(
-          PRODUCT_LIMITS.VARIANT_OPTION_VALUE_MAX,
-          PRODUCT.VARIANT_OPTION_VALUE_MAX,
-        ),
-    )
-    .min(1, PRODUCT.VARIANT_OPTION_VALUES_REQUIRED)
-    .max(
-      PRODUCT_LIMITS.VARIANT_OPTION_VALUES_MAX,
-      PRODUCT.VARIANT_OPTION_VALUES_MAX,
-    ),
-});
+const variantOptionSchema = z
+  .object({
+    name: z
+      .string()
+      .trim()
+      .min(1, PRODUCT.VARIANT_OPTION_NAME_REQUIRED)
+      .max(
+        PRODUCT_LIMITS.VARIANT_OPTION_NAME_MAX,
+        PRODUCT.VARIANT_OPTION_NAME_MAX,
+      ),
+    values: z
+      .array(
+        z
+          .string()
+          .trim()
+          .min(1)
+          .max(
+            PRODUCT_LIMITS.VARIANT_OPTION_VALUE_MAX,
+            PRODUCT.VARIANT_OPTION_VALUE_MAX,
+          ),
+      )
+      .min(1, PRODUCT.VARIANT_OPTION_VALUES_REQUIRED)
+      .max(
+        PRODUCT_LIMITS.VARIANT_OPTION_VALUES_MAX,
+        PRODUCT.VARIANT_OPTION_VALUES_MAX,
+      ),
+    /**
+     * Value → colour, shown to shoppers as swatches. `null` = off; while on,
+     * every value needs one.
+     */
+    swatches: z
+      .record(z.string(), z.string().regex(HEX_COLOR_REGEX))
+      .nullable(),
+  })
+  .refine(
+    (option) =>
+      option.swatches === null ||
+      option.values.every((value) => option.swatches?.[value]),
+    { message: PRODUCT.VARIANT_SWATCHES_INCOMPLETE, path: ['swatches'] },
+  );
 
 /** One row of the variants table. */
 const variantSchema = z
@@ -207,6 +221,13 @@ const variantSchema = z
     images: z
       .array(z.url(URL.INVALID))
       .max(PRODUCT_LIMITS.VARIANT_IMAGES_MAX, PRODUCT.VARIANT_IMAGES_MAX),
+    /** `shape: null` = measured as the product is. */
+    measurements: measurementsSchema,
+    /** '' = weighs what the product does. */
+    weight: z
+      .string()
+      .trim()
+      .max(PRODUCT_LIMITS.WEIGHT_MAX, PRODUCT.WEIGHT_MAX),
     isActive: z.boolean(),
   })
   .refine(
