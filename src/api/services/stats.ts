@@ -3,6 +3,7 @@ import type {
   ApiResponse,
   BuyClickStats,
   DashboardStats,
+  ProductDemand,
   StockAlertStats,
 } from '@/types/api';
 
@@ -26,6 +27,15 @@ export const statsService = {
   getStockAlerts: async () => {
     const { data } = await api.get<ApiResponse<StockAlertStats>>(
       '/stats/stock-alerts',
+    );
+    return data;
+  },
+
+  /** One product's buy clicks (last `days` days) and waiting shoppers, per variant. */
+  getProductDemand: async (productId: string, days: number) => {
+    const { data } = await api.get<ApiResponse<ProductDemand>>(
+      `/stats/products/${productId}`,
+      { params: { days } },
     );
     return data;
   },

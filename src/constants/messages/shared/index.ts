@@ -99,6 +99,8 @@ export const VALIDATION_MESSAGES = {
     VARIANT_SKU_DUPLICATE:
       'Another variant or the product already uses this SKU',
     VARIANT_IMAGES_MAX: 'A variant can have up to 6 photos',
+    VARIANT_SWATCHES_INCOMPLETE:
+      'Pick a colour for every value — or turn swatches off',
   },
   COMBO: {
     NAME_REQUIRED: 'Combo name is required',

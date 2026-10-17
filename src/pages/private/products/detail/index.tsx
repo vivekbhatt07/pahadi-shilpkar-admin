@@ -37,9 +37,9 @@ import {
   useDuplicateProduct,
   useProduct,
 } from '@/hooks/products';
+import { useProductDemand } from '@/hooks/stats';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { cn } from '@/lib/utils';
-import type { Product } from '@/types/api';
 
 import {
   comboImages,
@@ -53,6 +53,11 @@ import ListingTestimonials from '../../testimonials/layouts/ListingTestimonials'
 import { PRODUCT_DELETE_CONFIRMATION } from '../constants';
 import { AVAILABILITY_LABELS, availabilityVariant } from '../helpers';
 import ProductGallery from './layouts/ProductGallery';
+import VariantQuickEditDialog from './layouts/VariantQuickEditDialog';
+import VariantsTable from './layouts/VariantsTable';
+
+/** The window of the variants table's buy-click counts. */
+const DEMAND_DAYS = 30;
 
 const DetailField = ({
   label,
@@ -68,74 +73,6 @@ const DetailField = ({
       {label}
     </dt>
     <dd className="text-sm text-stone-700 dark:text-stone-300">{children}</dd>
-  </div>
-);
-
-/** Each variant at a glance — what's on sale, at what price, how many left. */
-const VariantsTable = ({ product }: { product: Product }) => (
-  <div className="overflow-x-auto">
-    <table className="w-full min-w-[34rem] text-sm">
-      <thead>
-        <tr className="border-b border-stone-100 text-left text-[11px] font-semibold tracking-wider text-stone-400 uppercase dark:border-stone-800 dark:text-stone-500">
-          <th className="py-2 pr-3 pl-3 font-semibold sm:pl-4 md:pl-6">
-            Variant
-          </th>
-          <th className="px-3 py-2 font-semibold">SKU</th>
-          <th className="px-3 py-2 text-right font-semibold">Price</th>
-          <th className="px-3 py-2 text-right font-semibold">Stock</th>
-          <th className="py-2 pr-3 pl-3 font-semibold sm:pr-4 md:pr-6">
-            Availability
-          </th>
-        </tr>
-      </thead>
-      <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
-        {product.variants.map((variant) => (
-          <tr key={variant.id}>
-            <td className="py-2.5 pr-3 pl-3 sm:pl-4 md:pl-6">
-              <div className="flex items-center gap-2.5">
-                <ImageThumb
-                  src={variant.images[0] ?? product.images[0]}
-                  alt=""
-                  className="size-8"
-                />
-                <span
-                  className={cn(
-                    'font-medium',
-                    variant.isActive
-                      ? 'text-stone-900 dark:text-stone-50'
-                      : 'text-stone-400 dark:text-stone-500',
-                  )}
-                >
-                  {variant.title}
-                </span>
-                {!variant.isActive && <Badge variant="secondary">Hidden</Badge>}
-              </div>
-            </td>
-            <td className="px-3 py-2.5 font-mono text-xs text-stone-500 dark:text-stone-400">
-              {variant.sku ?? '—'}
-            </td>
-            <td className="px-3 py-2.5 text-right tabular-nums">
-              <span className="font-medium text-stone-900 dark:text-stone-50">
-                {formatPrice(variant.price)}
-              </span>
-              {variant.compareAtPrice !== null && (
-                <span className="ml-1.5 text-xs text-stone-400 line-through">
-                  {formatPrice(variant.compareAtPrice)}
-                </span>
-              )}
-            </td>
-            <td className="px-3 py-2.5 text-right tabular-nums text-stone-700 dark:text-stone-300">
-              {variant.stock}
-            </td>
-            <td className="py-2.5 pr-3 pl-3 sm:pr-4 md:pr-6">
-              <Badge variant={availabilityVariant(variant.availability)}>
-                {AVAILABILITY_LABELS[variant.availability]}
-              </Badge>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
   </div>
 );
 
@@ -167,6 +104,14 @@ const ProductDetailPage = () => {
   const deleteProduct = useDeleteProduct();
   const duplicateProduct = useDuplicateProduct();
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  // The variant whose photos the gallery shows, and the one being edited
+  const [previewId, setPreviewId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const demand = useProductDemand(
+    product.data?.id,
+    DEMAND_DAYS,
+    (product.data?.variants.length ?? 0) > 0,
+  );
   useDocumentTitle(product.data?.name ?? 'Product');
 
   if (product.isPending) {
@@ -192,6 +137,12 @@ const ProductDetailPage = () => {
   const item = product.data;
   const firstVariant =
     item.variants.find((variant) => variant.isActive) ?? item.variants[0];
+  // As on the storefront: a variant's photos replace the product's
+  const preview = item.variants.find((variant) => variant.id === previewId);
+  const galleryImages =
+    preview && preview.images.length > 0 ? preview.images : item.images;
+  const editing =
+    item.variants.find((variant) => variant.id === editingId) ?? null;
   // "Round · Diameter 30 cm × Height 2 cm", then the admin's note, if any.
   const [dimensionsLine, ...dimensionsNote] =
     item.dimensions?.split('\n') ?? [];
@@ -304,7 +255,30 @@ const ProductDetailPage = () => {
       </div>
 
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
-        <ProductGallery images={item.images} name={item.name} />
+        <ProductGallery
+          key={galleryImages.join('|')}
+          images={galleryImages}
+          name={preview ? `${item.name} — ${preview.title}` : item.name}
+          caption={
+            preview && (
+              <div className="flex items-center justify-between gap-2 rounded-lg bg-accent-50 py-1.5 pr-1.5 pl-3 text-xs text-accent-800 dark:bg-accent-950/40 dark:text-accent-200">
+                <span>
+                  {preview.images.length > 0
+                    ? `${preview.title} — shoppers see these instead of the product's photos`
+                    : `${preview.title} has no photos of its own — shoppers see the product's`}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setPreviewId(null)}
+                  className="h-7 shrink-0 text-xs md:h-7"
+                >
+                  Product photos
+                </Button>
+              </div>
+            )
+          }
+        />
 
         <div className="stagger flex flex-col gap-6 lg:col-span-2">
           <Card>
@@ -403,7 +377,13 @@ const ProductDetailPage = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="px-0 sm:px-0 md:px-0">
-                <VariantsTable product={item} />
+                <VariantsTable
+                  product={item}
+                  demand={demand.data}
+                  previewId={preview?.id ?? null}
+                  onPreview={setPreviewId}
+                  onEdit={(variant) => setEditingId(variant.id)}
+                />
               </CardContent>
             </Card>
           )}
@@ -692,6 +672,16 @@ const ProductDetailPage = () => {
       </div>
 
       <ListingTestimonials type="product" listing={item} />
+
+      <VariantQuickEditDialog
+        productId={item.id}
+        variant={editing}
+        waiting={
+          demand.data?.variants.find((entry) => entry.variantId === editing?.id)
+            ?.waiting ?? 0
+        }
+        onClose={() => setEditingId(null)}
+      />
 
       <ConfirmDialog
         open={isDeleteOpen}

@@ -37,6 +37,29 @@ type TProductsTableProps = {
   onDelete: (product: Product) => void;
 };
 
+/**
+ * "2 sold out" — the live variants that are, which a product still in stock
+ * would otherwise hide. Named in the tooltip.
+ */
+const SoldOutVariants = ({ product }: { product: Product }) => {
+  const soldOut = product.variants.filter(
+    (variant) => variant.isActive && variant.availability === 'OUT_OF_STOCK',
+  );
+  if (soldOut.length === 0 || product.availability === 'OUT_OF_STOCK') {
+    return null;
+  }
+  return (
+    <SimpleTooltip
+      label={`Sold out: ${soldOut.map((variant) => variant.title).join(', ')}`}
+    >
+      <span className="cursor-help font-sans text-red-600 dark:text-red-400">
+        {' · '}
+        {soldOut.length} sold out
+      </span>
+    </SimpleTooltip>
+  );
+};
+
 const ProductsTable = ({
   products,
   isBusy,
@@ -156,6 +179,7 @@ const ProductsTable = ({
                             : 'variants'}
                         </span>
                       )}
+                      <SoldOutVariants product={product} />
                     </p>
                   </div>
                 </div>

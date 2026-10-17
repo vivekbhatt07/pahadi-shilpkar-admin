@@ -152,6 +152,11 @@ export interface VariantOption {
   name: string;
   /** 1–30, each ≤40, unique ignoring case. */
   values: string[];
+  /**
+   * `{ "Geru red": "#b7410e" }` — a colour for EVERY value (or none), so
+   * shoppers pick from swatches. Returned lowercase #rrggbb; absent = none.
+   */
+  swatches?: Record<string, string>;
 }
 
 /** One combination of option values, sold as its own thing. */
@@ -169,8 +174,14 @@ export interface ProductVariant {
   compareAtPrice: number | null;
   /** Read-only. */
   discountPercentage: number | null;
-  /** ≤6, its own photos; [] = the product's are shown. */
+  /** ≤6, shown instead of the product's while it's picked; [] = the product's. */
   images: string[];
+  /** Its own size, for one that measures differently; null = the product's. */
+  measurements: ProductMeasurements | null;
+  /** Read-only: worded like the product's `dimensions`; null = the product's. */
+  dimensions: string | null;
+  /** ≤50; null = the product's. */
+  weight: string | null;
   stock: number;
   availability: ProductAvailability;
   /** Off = hidden from the storefront and left out of the derived figures. */
@@ -420,6 +431,27 @@ export interface BuyClickStats {
   topCombos: (BuyClickCounts & {
     combo: { id: string; name: string; slug: string; images: string[] };
   })[];
+}
+
+/** One variant's share of a product's demand. */
+export interface VariantDemand extends BuyClickCounts {
+  variantId: string;
+  /** Shoppers with a stock alert on this variant. */
+  waiting: number;
+}
+
+/**
+ * Only from GET /api/stats/products/:id — one product's buy clicks over the
+ * last `days` days and its waiting shoppers, variant by variant.
+ */
+export interface ProductDemand {
+  days: number;
+  /** All of the product's clicks — older ones without a variant included. */
+  clicks: BuyClickCounts;
+  /** Waiting on the product or any variant of it. */
+  waiting: number;
+  /** Every variant, in order — zeros included. */
+  variants: VariantDemand[];
 }
 
 /**
@@ -821,8 +853,23 @@ export interface ProductVariantPayload {
   stock?: number;
   availability?: ProductAvailability;
   images?: string[];
+  /** null = measured as the product is. */
+  measurements?: ProductMeasurementsPayload | null;
+  /** null = weighs what the product does. */
+  weight?: string | null;
   isActive?: boolean;
 }
+
+/**
+ * PATCH /api/products/:id/variants/:variantId — one variant changed on its
+ * own; send at least one. Making it orderable emails shoppers waiting on it.
+ */
+export type UpdateVariantPayload = Partial<
+  Pick<
+    ProductVariantPayload,
+    'price' | 'compareAtPrice' | 'stock' | 'availability' | 'isActive'
+  >
+>;
 
 export interface CreateProductPayload extends DeliveryPayload {
   name: string;
