@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import {
   ArrowDown,
   ArrowUp,
   Boxes,
   ChevronDown,
+  Copy,
   Eye,
+  Gift,
   ImagePlus,
   Images,
   Layers,
@@ -22,8 +24,10 @@ import {
   useFormState,
   useWatch,
 } from 'react-hook-form';
+import { Link } from 'react-router';
 import { toast } from 'sonner';
 
+import Callout from '@/components/custom/Callout';
 import ImagesInput from '@/components/custom/ImagesInput';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -52,7 +56,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 import { SimpleTooltip } from '@/components/ui/tooltip';
+import { ROUTES } from '@/constants/routes';
 import { formatPrice } from '@/helpers/format';
 import { cn } from '@/lib/utils';
 import type { ProductAvailability } from '@/types/api';
@@ -70,6 +76,7 @@ import {
   addOption,
   addOptionValue,
   copyPhotosToSiblings,
+  copySizeToSiblings,
   generateSkus,
   inScope,
   missingCombinations,
@@ -86,10 +93,13 @@ import {
   summarizeVariantRows,
   variantRowKey,
   variantRowTitle,
+  type TComboRef,
+  type TComboUsage,
   type TVariantScope,
   type TVariantsState,
 } from '../variants';
 import OptionValuesInput from './OptionValuesInput';
+import VariantLinksField from './VariantLinksField';
 import VariantMeasurementsField from './VariantMeasurementsField';
 
 const { NAME, SKU, VARIANT_OPTIONS, VARIANTS } = PRODUCT_FORM_FIELD_NAMES;
@@ -133,20 +143,30 @@ const ownSize = (row: TVariantFormValue) => {
   return [dimensions, row.weight.trim()].filter(Boolean).join(' · ') || null;
 };
 
+/** The other variants a row's size can be copied to — "every Large one". */
+type TCopyTarget = { optionIndex: number; value: string; count: number };
+
 type TVariantRowProps = {
   index: number;
   row: TVariantFormValue;
+  /** The combos selling it, when it's saved and in any. */
+  combos?: TComboRef[];
+  copyTargets: TCopyTarget[];
   disabled?: boolean;
   onPhotos: () => void;
   onRemove: () => void;
+  onCopySize: (optionIndex: number) => void;
 };
 
 const VariantRow = ({
   index,
   row,
+  combos = [],
+  copyTargets,
   disabled,
   onPhotos,
   onRemove,
+  onCopySize,
 }: TVariantRowProps) => {
   const { control } = useFormContext<TProductFormData>();
   const [expanded, setExpanded] = useState(false);
@@ -157,6 +177,11 @@ const VariantRow = ({
   const title = variantRowTitle(row);
   const size = ownSize(row);
   const measurementErrors = errors?.measurements;
+  const linkErrors = row.purchaseLinks.map(
+    (_, i) =>
+      errors?.purchaseLinks?.[i]?.url?.message ??
+      errors?.purchaseLinks?.[i]?.label?.message,
+  );
   // A problem in a field that's tucked away opens the row
   const open =
     expanded ||
@@ -165,6 +190,8 @@ const VariantRow = ({
       errors?.sku ||
       errors?.images ||
       errors?.weight ||
+      errors?.description ||
+      errors?.purchaseLinks ||
       measurementErrors,
     );
   const messages = [
@@ -179,6 +206,8 @@ const VariantRow = ({
         measurementErrors?.message,
         ...PRODUCT_SIZES.map((key) => measurementErrors?.[key]?.message),
         measurementErrors?.note?.message,
+        errors?.description?.message,
+        errors?.purchaseLinks?.message,
       ].filter((message): message is string => Boolean(message)),
     ),
   ];
@@ -238,6 +267,19 @@ const VariantRow = ({
                 aria-label={`Own size: ${size}`}
                 className="size-3.5 shrink-0 text-stone-400"
               />
+            </SimpleTooltip>
+          )}
+          {combos.length > 0 && (
+            <SimpleTooltip
+              label={`Sold in ${combos.map((combo) => combo.name).join(', ')}`}
+            >
+              <span
+                aria-label={`In ${combos.length} ${combos.length === 1 ? 'combo' : 'combos'}`}
+                className="inline-flex shrink-0 items-center gap-0.5 text-[11px] text-stone-500 tabular-nums dark:text-stone-400"
+              >
+                <Gift className="size-3" />
+                {combos.length}
+              </span>
             </SimpleTooltip>
           )}
           {!row.id && (
@@ -444,6 +486,71 @@ const VariantRow = ({
                 </label>
               )}
             />
+            {size && copyTargets.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {copyTargets.map((target) => (
+                  <Button
+                    key={target.optionIndex}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={disabled}
+                    onClick={() => onCopySize(target.optionIndex)}
+                  >
+                    <Copy />
+                    Use for every {target.value} variant ({target.count} more)
+                  </Button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-3 border-t border-dashed border-stone-200 pt-3 dark:border-stone-800">
+            <Controller
+              control={control}
+              name={`${VARIANTS}.${index}.description`}
+              render={({ field }) => (
+                <label className={fieldLabelClass}>
+                  <span className="flex items-center justify-between">
+                    Description
+                    <span className="font-normal text-stone-400 tabular-nums dark:text-stone-500">
+                      {field.value.length}/
+                      {PRODUCT_LIMITS.VARIANT_DESCRIPTION_MAX}
+                    </span>
+                  </span>
+                  <Textarea
+                    rows={2}
+                    maxLength={PRODUCT_LIMITS.VARIANT_DESCRIPTION_MAX}
+                    placeholder="Optional — what sets it apart: “Holds six diyas”, “Each peacock painted by hand”"
+                    aria-invalid={Boolean(errors?.description)}
+                    disabled={disabled}
+                    {...field}
+                  />
+                </label>
+              )}
+            />
+            <div className="flex flex-col gap-2">
+              <p className="text-xs text-stone-400 dark:text-stone-500">
+                <span className="font-medium text-stone-600 dark:text-stone-300">
+                  Where to buy {title}
+                </span>{' '}
+                — only when it's listed on its own, say on Amazon. Shoppers who
+                pick it see these buttons instead of the product's.
+              </p>
+              <Controller
+                control={control}
+                name={`${VARIANTS}.${index}.purchaseLinks`}
+                render={({ field }) => (
+                  <VariantLinksField
+                    value={field.value}
+                    onChange={field.onChange}
+                    errors={linkErrors}
+                    title={title}
+                    disabled={disabled}
+                  />
+                )}
+              />
+            </div>
           </div>
         </div>
       )}
@@ -555,7 +662,16 @@ const applyBulkChange = (
  * in the product form's Variants card; the form sends both lists whole
  * whenever either changed.
  */
-const VariantsField = ({ disabled }: { disabled?: boolean }) => {
+type TVariantsFieldProps = {
+  disabled?: boolean;
+  /**
+   * The saved variants combos sell — on the edit form. Removing one is
+   * refused on save, so the field warns first.
+   */
+  comboUsage?: TComboUsage;
+};
+
+const VariantsField = ({ disabled, comboUsage }: TVariantsFieldProps) => {
   const { control, getValues, setValue } = useFormContext<TProductFormData>();
   const options = useWatch({ control, name: VARIANT_OPTIONS });
   const rows = useWatch({ control, name: VARIANTS });
@@ -632,6 +748,47 @@ const VariantsField = ({ disabled }: { disabled?: boolean }) => {
     (row, index) => row.sku !== rows[index].sku,
   ).length;
 
+  // The other variants each row's size can be copied to
+  const copyTargetsFor = (index: number): TCopyTarget[] =>
+    options.flatMap((_, optionIndex) => {
+      const value = rows[index].values[optionIndex];
+      const count = siblingIndexes(rows, index, optionIndex).length;
+      return value && count > 0 ? [{ optionIndex, value, count }] : [];
+    });
+
+  // Saved variants a combo sells that are no longer in the table
+  const removedInCombos = comboUsage
+    ? [...comboUsage.entries()].filter(
+        ([id]) => !rows.some((row) => row.id === id),
+      )
+    : [];
+  const comboWarning = removedInCombos.length > 0 && (
+    <Callout variant="warning">
+      {removedInCombos.map(([id, usage]) => (
+        <span key={id} className="block">
+          <span className="font-medium">{usage.title}</span> is sold in{' '}
+          {usage.combos.map((combo, i) => (
+            <Fragment key={combo.slug}>
+              {i > 0 && ', '}
+              <Link
+                to={ROUTES.PRIVATE.COMBOS.DETAIL(combo.slug)}
+                target="_blank"
+                className="underline underline-offset-2"
+              >
+                {combo.name}
+              </Link>
+            </Fragment>
+          ))}
+          .
+        </span>
+      ))}
+      <span className="mt-1 block">
+        Saving will be refused while a combo sells a variant you removed — take
+        it out of the combo first, or switch the variant off instead to hide it.
+      </span>
+    </Callout>
+  );
+
   const summary = summarizeVariantRows(rows);
   const missing = missingCombinations({ options, rows });
   const room = PRODUCT_LIMITS.VARIANTS_MAX - rows.length;
@@ -665,6 +822,7 @@ const VariantsField = ({ disabled }: { disabled?: boolean }) => {
           <Plus />
           Add an option
         </Button>
+        {comboWarning && <div className="text-left">{comboWarning}</div>}
       </div>
     );
   }
@@ -969,8 +1127,21 @@ const VariantsField = ({ disabled }: { disabled?: boolean }) => {
                   key={variantRowKey(row)}
                   index={index}
                   row={row}
+                  combos={row.id ? comboUsage?.get(row.id)?.combos : undefined}
+                  copyTargets={copyTargetsFor(index)}
                   disabled={disabled}
                   onPhotos={() => setPhotosIndex(index)}
+                  onCopySize={(optionIndex) => {
+                    const target = copyTargetsFor(index).find(
+                      (candidate) => candidate.optionIndex === optionIndex,
+                    );
+                    update(copySizeToSiblings(current(), index, optionIndex));
+                    if (target) {
+                      toast.success(
+                        `Size copied to ${target.count} more ${target.value} ${target.count === 1 ? 'variant' : 'variants'}`,
+                      );
+                    }
+                  }}
                   onRemove={() =>
                     update({
                       ...current(),
@@ -989,6 +1160,8 @@ const VariantsField = ({ disabled }: { disabled?: boolean }) => {
           </p>
         </div>
       )}
+
+      {comboWarning}
 
       {rowsError && (
         <p className="text-sm font-medium text-red-600 dark:text-red-400">

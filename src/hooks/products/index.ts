@@ -7,3 +7,4 @@ export { useProducts } from './useProducts';
 export { useToggleProductFeatured } from './useToggleProductFeatured';
 export { useUpdateProduct } from './useUpdateProduct';
 export { useUpdateVariant } from './useUpdateVariant';
+export { useVariantList } from './useVariantList';

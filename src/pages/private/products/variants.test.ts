@@ -7,6 +7,7 @@ import {
   addOption,
   addOptionValue,
   copyPhotosToSiblings,
+  copySizeToSiblings,
   generateSkus,
   inScope,
   missingCombinations,
@@ -22,6 +23,7 @@ import {
   summarizeVariantRows,
   toVariantsFormValue,
   toVariantsPayload,
+  variantComboUsage,
   variantRowTitle,
   type TVariantsState,
 } from './variants';
@@ -60,6 +62,8 @@ const row = (overrides: Partial<TVariantFormValue>): TVariantFormValue => ({
   images: [],
   measurements: EMPTY_MEASUREMENTS,
   weight: '',
+  description: '',
+  purchaseLinks: [],
   isActive: true,
   ...overrides,
 });
@@ -358,6 +362,14 @@ describe('toVariantsFormValue / toVariantsPayload', () => {
         },
         dimensions: 'Round · Diameter 30 cm × Height 2 cm',
         weight: '450 g',
+        description: 'Lotus petals in brass',
+        purchaseLinks: [
+          {
+            platform: 'AMAZON' as const,
+            label: null,
+            url: 'https://amazon.in/lotus',
+          },
+        ],
         stock: 2,
         availability: 'IN_STOCK' as const,
         isActive: true,
@@ -398,6 +410,10 @@ describe('toVariantsFormValue / toVariantsPayload', () => {
             note: null,
           },
           weight: '450 g',
+          description: 'Lotus petals in brass',
+          purchaseLinks: [
+            { platform: 'AMAZON', label: null, url: 'https://amazon.in/lotus' },
+          ],
           isActive: true,
         },
       ],
@@ -415,6 +431,8 @@ describe('toVariantsFormValue / toVariantsPayload', () => {
     expect(variant.options).toEqual({ Design: 'Peacock' });
     expect(variant.measurements).toBeNull();
     expect(variant.weight).toBeNull();
+    expect(variant.description).toBeNull();
+    expect(variant.purchaseLinks).toEqual([]);
   });
 });
 
@@ -435,5 +453,68 @@ describe('summarizeVariantRows', () => {
       stock: 5,
       availability: 'IN_STOCK',
     });
+  });
+});
+
+describe('copySizeToSiblings', () => {
+  it('gives the variants sharing a value the same size and weight', () => {
+    const state = designBySize();
+    const large = {
+      ...EMPTY_MEASUREMENTS,
+      shape: 'RECTANGULAR' as const,
+      length: 200,
+      width: 70,
+    };
+    // Peacock / Large is the second row; Lotus / Large the fourth
+    state.rows[1] = { ...state.rows[1], measurements: large, weight: '450 g' };
+
+    const copied = copySizeToSiblings(state, 1, 1);
+    expect(copied.rows[3]).toMatchObject({
+      measurements: large,
+      weight: '450 g',
+    });
+    // A copy, not the same object — editing one leaves the other alone
+    expect(copied.rows[3].measurements).not.toBe(large);
+    // The smalls keep theirs
+    expect(copied.rows[0].weight).toBe('');
+    expect(copied.rows[2].weight).toBe('');
+  });
+});
+
+describe('variantComboUsage', () => {
+  const item = (variantId: string | null, title = 'Peacock') => ({
+    productId: 'p1',
+    variantId,
+    quantity: 1,
+    product: {} as never,
+    variant: variantId ? ({ title } as never) : null,
+  });
+
+  it('names the combos selling each of a product’s variants', () => {
+    const usage = variantComboUsage(
+      [
+        {
+          name: 'Diwali set',
+          slug: 'diwali-set',
+          items: [item('v1'), { ...item('x'), productId: 'other' }],
+        },
+        {
+          name: 'Karwa Chauth set',
+          slug: 'karwa-chauth-set',
+          items: [item('v1'), item('v2', 'Lotus')],
+        },
+      ] as never,
+      'p1',
+    );
+
+    expect([...usage.keys()]).toEqual(['v1', 'v2']);
+    expect(usage.get('v1')).toEqual({
+      title: 'Peacock',
+      combos: [
+        { name: 'Diwali set', slug: 'diwali-set' },
+        { name: 'Karwa Chauth set', slug: 'karwa-chauth-set' },
+      ],
+    });
+    expect(usage.get('v2')?.title).toBe('Lotus');
   });
 });

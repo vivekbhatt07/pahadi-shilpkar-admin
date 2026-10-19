@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router';
 import {
   ArrowLeft,
   ExternalLink,
+  Eye,
   EyeOff,
   MessageCircle,
   PackageX,
@@ -31,6 +32,7 @@ import {
   availabilityVariant,
 } from '../../products/helpers';
 import ProductGallery from '../../products/detail/layouts/ProductGallery';
+import VariantPreviewDialog from '../../products/layouts/VariantPreviewDialog';
 import ListingTestimonials from '../../testimonials/layouts/ListingTestimonials';
 import { COMBO_HIDDEN_BY_PRODUCT_WARNING } from '../constants';
 import {
@@ -39,6 +41,7 @@ import {
   comboItemKey,
   comboItemPrice,
   hasInactiveItem,
+  toPreviewTarget,
 } from '../helpers';
 
 const DetailField = ({
@@ -80,6 +83,8 @@ const ComboDetailPage = () => {
   const combo = useCombo(slug);
   const deleteCombo = useDeleteCombo();
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  // The item being looked at closely
+  const [previewKey, setPreviewKey] = useState<string | null>(null);
   useDocumentTitle(combo.data?.name ?? 'Combo');
 
   if (combo.isPending) {
@@ -103,6 +108,10 @@ const ComboDetailPage = () => {
   }
 
   const item = combo.data;
+  const previewed = item.items.find(
+    (comboItem) =>
+      comboItemKey(comboItem.productId, comboItem.variantId) === previewKey,
+  );
   const blockedByProduct = hasInactiveItem(item);
 
   const handleDelete = () => {
@@ -265,17 +274,31 @@ const ComboDetailPage = () => {
                 {item.items.map((comboItem) => {
                   const { product, variant, quantity } = comboItem;
                   const price = comboItemPrice(comboItem);
+                  const key = comboItemKey(product.id, variant?.id ?? null);
                   return (
-                    <li key={comboItemKey(product.id, variant?.id ?? null)}>
-                      <Link
-                        to={ROUTES.PRIVATE.PRODUCTS.DETAIL(product.slug)}
-                        className="group flex items-center gap-3 px-3 py-3 transition-colors hover:bg-stone-50 sm:px-4 md:px-6 dark:hover:bg-stone-800/40"
+                    <li
+                      key={key}
+                      className="flex items-center gap-3 px-3 py-3 transition-colors hover:bg-stone-50 sm:px-4 md:px-6 dark:hover:bg-stone-800/40"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setPreviewKey(key)}
+                        aria-label={`Preview ${product.name}${variant ? ` — ${variant.title}` : ''}`}
+                        className="group/thumb relative shrink-0 cursor-pointer rounded-lg outline-none focus-visible:ring-4 focus-visible:ring-accent-500/25"
                       >
                         <ImageThumb
                           src={comboItemImage(comboItem)}
                           alt=""
-                          className="size-10"
+                          className="size-14"
                         />
+                        <span className="absolute inset-0 flex items-center justify-center rounded-lg bg-stone-950/40 text-white opacity-0 transition-opacity group-hover/thumb:opacity-100 group-focus-visible/thumb:opacity-100">
+                          <Eye className="size-4" />
+                        </span>
+                      </button>
+                      <Link
+                        to={ROUTES.PRIVATE.PRODUCTS.DETAIL(product.slug)}
+                        className="group flex min-w-0 flex-1 items-center gap-3"
+                      >
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">
                             <p className="truncate text-sm font-medium text-stone-900 group-hover:text-accent-600 dark:text-stone-50 dark:group-hover:text-accent-400">
@@ -383,6 +406,12 @@ const ComboDetailPage = () => {
       </div>
 
       <ListingTestimonials type="combo" listing={item} />
+
+      <VariantPreviewDialog
+        target={previewed ? toPreviewTarget(previewed) : null}
+        quantity={previewed?.quantity}
+        onClose={() => setPreviewKey(null)}
+      />
 
       <ConfirmDialog
         open={isDeleteOpen}
