@@ -1,13 +1,14 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { FormProvider, useForm, type UseFormReturn } from 'react-hook-form';
+import { MemoryRouter } from 'react-router';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { TooltipProvider } from '@/components/ui/tooltip';
 
 import { EMPTY_MEASUREMENTS } from '../helpers';
 import type { TProductFormData, TVariantFormValue } from '../types';
-import { variantRowTitle } from '../variants';
+import { variantRowTitle, type TComboUsage } from '../variants';
 import VariantsField from './VariantsField';
 
 const variant = (values: string[], price = 499): TVariantFormValue => ({
@@ -21,6 +22,8 @@ const variant = (values: string[], price = 499): TVariantFormValue => ({
   images: [],
   measurements: EMPTY_MEASUREMENTS,
   weight: '',
+  description: '',
+  purchaseLinks: [],
   isActive: true,
 });
 
@@ -39,24 +42,29 @@ const THALI: Partial<TProductFormData> = {
   ],
 };
 
-const renderField = () => {
+const renderField = ({
+  values = THALI,
+  comboUsage,
+}: { values?: Partial<TProductFormData>; comboUsage?: TComboUsage } = {}) => {
   let form!: UseFormReturn<TProductFormData>;
   const Harness = () => {
     form = useForm<TProductFormData>({
-      defaultValues: THALI as TProductFormData,
+      defaultValues: values as TProductFormData,
     });
     return (
       <FormProvider {...form}>
         <form>
-          <VariantsField />
+          <VariantsField comboUsage={comboUsage} />
         </form>
       </FormProvider>
     );
   };
   render(
-    <TooltipProvider>
-      <Harness />
-    </TooltipProvider>,
+    <MemoryRouter>
+      <TooltipProvider>
+        <Harness />
+      </TooltipProvider>
+    </MemoryRouter>,
   );
   return {
     user: userEvent.setup(),
@@ -147,5 +155,74 @@ describe('VariantsField', () => {
     );
     expect(options()[1].swatches).toEqual({});
     expect(screen.getByLabelText('Colour of Peacock')).toBeInTheDocument();
+  });
+});
+
+describe('VariantsField with combos and sizes', () => {
+  // Peacock / Large is saved, and the Diwali set sells it
+  const SAVED: Partial<TProductFormData> = {
+    ...THALI,
+    variants: [
+      variant(['Peacock', 'Small']),
+      { ...variant(['Peacock', 'Large'], 799), id: 'v-pl' },
+      variant(['Lotus', 'Large'], 799),
+    ],
+  };
+  const USAGE: TComboUsage = new Map([
+    [
+      'v-pl',
+      {
+        title: 'Peacock / Large',
+        combos: [{ name: 'Diwali set', slug: 'diwali-set' }],
+      },
+    ],
+  ]);
+
+  it('marks a variant a combo sells, and warns once it is removed', async () => {
+    const { user, rows } = renderField({ values: SAVED, comboUsage: USAGE });
+
+    expect(screen.getByLabelText('In 1 combo')).toBeInTheDocument();
+    expect(screen.queryByText(/Saving will be refused/)).toBeNull();
+
+    await user.click(
+      screen.getByRole('button', { name: 'More about Peacock / Large' }),
+    );
+    await user.click(screen.getByRole('button', { name: 'Remove variant' }));
+
+    expect(rows().map(variantRowTitle)).not.toContain('Peacock / Large');
+    expect(screen.getByText(/Saving will be refused/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Diwali set' })).toHaveAttribute(
+      'href',
+      '/combos/diwali-set',
+    );
+  });
+
+  it('copies a size to the other variants sharing its value', async () => {
+    const { user, rows } = renderField();
+
+    await user.click(
+      screen.getByRole('button', { name: 'More about Peacock / Large' }),
+    );
+    await user.click(
+      screen.getByRole('combobox', { name: 'Size of Peacock / Large' }),
+    );
+    await user.click(await screen.findByRole('option', { name: 'Round' }));
+    await user.type(screen.getByRole('spinbutton', { name: /Diameter/ }), '30');
+    await user.type(screen.getByRole('textbox', { name: 'Weight' }), '450 g');
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Use for every Large variant (1 more)',
+      }),
+    );
+
+    const lotusLarge = rows()[2];
+    expect(variantRowTitle(lotusLarge)).toBe('Lotus / Large');
+    expect(lotusLarge.measurements).toMatchObject({
+      shape: 'ROUND',
+      diameter: 30,
+    });
+    expect(lotusLarge.weight).toBe('450 g');
+    // The smalls measure as the product does
+    expect(rows()[0].measurements.shape).toBeNull();
   });
 });

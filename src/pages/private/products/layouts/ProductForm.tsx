@@ -42,6 +42,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { ROUTES } from '@/constants/routes';
 import { formatPrice } from '@/helpers/format';
+import { useCombos } from '@/hooks/combos';
 import { useUnsavedChangesWarning } from '@/hooks/useUnsavedChangesWarning';
 import type { Product } from '@/types/api';
 
@@ -52,7 +53,7 @@ import {
   PRODUCT_LIMITS,
 } from '../constants';
 import { productFormSchema } from '../schemas';
-import { summarizeVariantRows } from '../variants';
+import { summarizeVariantRows, variantComboUsage } from '../variants';
 import type { TProductFormData, TProductFormMode } from '../types';
 import ColorsField from './ColorsField';
 import DeliveryChargeField from './DeliveryChargeField';
@@ -177,6 +178,16 @@ const ProductForm = ({
   const hasVariants = useWatch({ control, name: VARIANT_OPTIONS }).length > 0;
   const variantRows = useWatch({ control, name: VARIANTS });
   const variantSummary = summarizeVariantRows(variantRows);
+  // The combos selling this product's variants — removing one of those is
+  // refused on save, so the variants editor warns first
+  const combos = useCombos(
+    { productId: product?.id, includeInactive: true, limit: 100 },
+    { enabled: isEdit && Boolean(product?.variants.length) },
+  );
+  const comboUsage =
+    product && combos.data
+      ? variantComboUsage(combos.data.items, product.id)
+      : undefined;
   // useFormState (not form.formState) so the React Compiler sees fresh state.
   const { isDirty, errors } = useFormState({ control });
   useUnsavedChangesWarning(isDirty && !isPending);
@@ -384,7 +395,7 @@ const ProductForm = ({
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <VariantsField disabled={isPending} />
+                <VariantsField disabled={isPending} comboUsage={comboUsage} />
               </CardContent>
             </Card>
 

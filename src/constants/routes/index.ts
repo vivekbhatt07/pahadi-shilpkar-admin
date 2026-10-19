@@ -8,6 +8,8 @@ export const ROUTES = {
       DETAIL: (slug: string) => `/products/${slug}`,
       EDIT: (slug: string) => `/products/${slug}/edit`,
     },
+    /** Every variant across products — stock at a glance. */
+    VARIANTS: '/variants',
     COMBOS: {
       ROOT: '/combos',
       CREATE: '/combos/new',

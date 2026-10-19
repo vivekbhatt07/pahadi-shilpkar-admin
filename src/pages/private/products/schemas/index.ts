@@ -198,6 +198,31 @@ const variantOptionSchema = z
     { message: PRODUCT.VARIANT_SWATCHES_INCOMPLETE, path: ['swatches'] },
   );
 
+/** Shared with the combo form. */
+export const purchaseLinkSchema = z.object({
+  platform: z.enum([
+    'AMAZON',
+    'FLIPKART',
+    'MEESHO',
+    'ETSY',
+    'INSTAGRAM',
+    'FACEBOOK',
+    'WEBSITE',
+    'OTHER',
+  ]),
+  label: z
+    .string()
+    .trim()
+    .max(
+      PRODUCT_LIMITS.PURCHASE_LINK_LABEL_MAX,
+      PRODUCT.PURCHASE_LINK_LABEL_MAX,
+    ),
+  url: optionalHttpUrl.refine(
+    (value) => value !== '',
+    PRODUCT.PURCHASE_LINK_URL_REQUIRED,
+  ),
+});
+
 /** One row of the variants table. */
 const variantSchema = z
   .object({
@@ -228,6 +253,18 @@ const variantSchema = z
       .string()
       .trim()
       .max(PRODUCT_LIMITS.WEIGHT_MAX, PRODUCT.WEIGHT_MAX),
+    /** '' = nothing extra under the picker. */
+    description: z
+      .string()
+      .trim()
+      .max(
+        PRODUCT_LIMITS.VARIANT_DESCRIPTION_MAX,
+        PRODUCT.VARIANT_DESCRIPTION_MAX,
+      ),
+    /** Its own listings; [] = listed where the product is. */
+    purchaseLinks: z
+      .array(purchaseLinkSchema)
+      .max(PRODUCT_LIMITS.PURCHASE_LINKS_MAX, PRODUCT.PURCHASE_LINKS_MAX),
     isActive: z.boolean(),
   })
   .refine(
@@ -256,31 +293,6 @@ export const deliveryFeeSchema = z
     DELIVERY.FEE_INVALID,
   )
   .nullable();
-
-/** Shared with the combo form. */
-export const purchaseLinkSchema = z.object({
-  platform: z.enum([
-    'AMAZON',
-    'FLIPKART',
-    'MEESHO',
-    'ETSY',
-    'INSTAGRAM',
-    'FACEBOOK',
-    'WEBSITE',
-    'OTHER',
-  ]),
-  label: z
-    .string()
-    .trim()
-    .max(
-      PRODUCT_LIMITS.PURCHASE_LINK_LABEL_MAX,
-      PRODUCT.PURCHASE_LINK_LABEL_MAX,
-    ),
-  url: optionalHttpUrl.refine(
-    (value) => value !== '',
-    PRODUCT.PURCHASE_LINK_URL_REQUIRED,
-  ),
-});
 
 export const productFormSchema = z
   .object({

@@ -3,12 +3,14 @@ import type {
   ApiResponse,
   BulkUpdateProductsPayload,
   CreateProductPayload,
+  InventoryPage,
   Paginated,
   Product,
   ProductDetail,
   ProductListParams,
   UpdateProductPayload,
   UpdateVariantPayload,
+  VariantListParams,
 } from '@/types/api';
 
 const toQuery = (params: ProductListParams) => {
@@ -62,6 +64,25 @@ export const productsService = {
       `/products/${id}`,
       payload,
     );
+    return data;
+  },
+
+  /**
+   * Every variant across products — lowest stock first unless sorted — with
+   * its product, waiting shoppers and combo count, plus counts for filters.
+   */
+  listVariants: async (params: VariantListParams = {}) => {
+    const query: Record<string, string> = {};
+    if (params.search) query.search = params.search;
+    if (params.availability) query.availability = params.availability;
+    if (params.lowStock !== undefined) query.lowStock = String(params.lowStock);
+    if (params.isActive !== undefined) query.isActive = String(params.isActive);
+    if (params.sort) query.sort = params.sort;
+    if (params.page) query.page = String(params.page);
+    if (params.limit) query.limit = String(params.limit);
+    const { data } = await api.get<ApiResponse<InventoryPage>>('/variants', {
+      params: query,
+    });
     return data;
   },
 

@@ -8,6 +8,8 @@ import type {
   ProductVariant,
 } from '@/types/api';
 
+import type { TVariantPreviewTarget } from '../products/layouts/VariantPreviewDialog';
+
 /** The product fields a combo item carries — also used as the form snapshot. */
 export const toComboProduct = (
   product: Product | ComboProduct,
@@ -53,6 +55,22 @@ export const comboItemPrice = (item: TComboItemView) =>
 /** The item's photo — the variant's own, else the product's. */
 export const comboItemImage = (item: TComboItemView): string | undefined =>
   item.variant?.images[0] ?? item.product.images[0];
+
+/** Every photo shoppers see for the item — the variant's own, else the product's. */
+export const comboItemImages = (item: TComboItemView): string[] =>
+  item.variant && item.variant.images.length > 0
+    ? item.variant.images
+    : item.product.images;
+
+/** An item as the preview dialog opens it. */
+export const toPreviewTarget = (
+  item: Pick<ComboItem, 'product' | 'variant' | 'variantId'>,
+): TVariantPreviewTarget => ({
+  slug: item.product.slug,
+  name: item.product.name,
+  images: comboItemImages(item),
+  variantId: item.variantId,
+});
 
 /** Can't be ordered, so it hides the combo: an inactive product or variant. */
 export const isComboItemOff = (item: TComboItemView) =>

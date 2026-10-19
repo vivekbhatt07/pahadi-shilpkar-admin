@@ -8,6 +8,7 @@ import type {
   ProductListParams,
   TestimonialListParams,
   UserListParams,
+  VariantListParams,
 } from '@/types/api';
 
 export const QUERY_KEYS = {
@@ -28,6 +29,9 @@ export const QUERY_KEYS = {
     LIST: (params: ProductListParams) => ['products', 'list', params] as const,
     DETAILS: ['products', 'detail'] as const,
     DETAIL: (slug: string) => ['products', 'detail', slug] as const,
+    /** Under PRODUCTS, so every product save refreshes the variants list. */
+    VARIANTS: (params: VariantListParams) =>
+      ['products', 'variants', params] as const,
   },
   COMBOS: {
     ALL: ['combos'] as const,

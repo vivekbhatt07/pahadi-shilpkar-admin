@@ -35,6 +35,7 @@ export const ProductDetailPage = lazyPage(
 export const EditProductPage = lazyPage(
   () => import('@/pages/private/products/edit'),
 );
+export const VariantsPage = lazyPage(() => import('@/pages/private/variants'));
 export const CombosPage = lazyPage(() => import('@/pages/private/combos'));
 export const CreateComboPage = lazyPage(
   () => import('@/pages/private/combos/create'),

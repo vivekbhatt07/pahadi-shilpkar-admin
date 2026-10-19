@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   useFieldArray,
   useFormContext,
@@ -8,11 +9,13 @@ import { Link } from 'react-router';
 import {
   ArrowDown,
   ArrowUp,
+  Eye,
   Minus,
   PackageOpen,
   Plus,
   Trash2,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 import ImageThumb from '@/components/custom/ImageThumb';
 import { Badge } from '@/components/ui/badge';
@@ -21,7 +24,13 @@ import { SimpleTooltip } from '@/components/ui/tooltip';
 import { ROUTES } from '@/constants/routes';
 import { formatPrice } from '@/helpers/format';
 import { cn } from '@/lib/utils';
+import type { ProductVariant } from '@/types/api';
 
+import {
+  AVAILABILITY_LABELS,
+  availabilityVariant,
+} from '../../products/helpers';
+import VariantPreviewDialog from '../../products/layouts/VariantPreviewDialog';
 import { COMBO_FORM_FIELD_NAMES, COMBO_LIMITS } from '../constants';
 import {
   comboItemImage,
@@ -30,6 +39,7 @@ import {
   comboItemPrice,
   toComboProduct,
   toComboVariant,
+  toPreviewTarget,
 } from '../helpers';
 import type { TComboFormData } from '../types';
 import ProductPicker from './ProductPicker';
@@ -56,19 +66,34 @@ const ComboItemsField = ({ disabled }: TComboItemsFieldProps) => {
     control,
     name: ITEMS,
   });
-  const { fields, append, remove, move } = useFieldArray({
+  const { fields, append, remove, move, update } = useFieldArray({
     control,
     name: ITEMS,
   });
   const items = useWatch({ control, name: ITEMS });
   const errors = formErrors.items;
   const rootError = errors?.root?.message ?? errors?.message;
+  // The item being looked at closely
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
+  const previewItem = previewIndex === null ? undefined : items[previewIndex];
 
   // Re-validate the whole list, not just this row: the "at least 2 items"
   // rule lives on the array and must clear once a quantity fixes it.
   const setQuantity = (index: number, quantity: number) => {
     setValue(`${ITEMS}.${index}.quantity`, quantity, { shouldDirty: true });
     if (isSubmitted) void trigger(ITEMS);
+  };
+
+  // A design picked by mistake is swapped in place — quantity and position kept
+  const swapVariant = (index: number, variant: ProductVariant) => {
+    const item = items[index];
+    update(index, {
+      ...item,
+      variantId: variant.id,
+      variant: toComboVariant(variant),
+    });
+    if (isSubmitted) void trigger(ITEMS);
+    toast.success(`Swapped to ${item.product.name} — ${variant.title}`);
   };
 
   return (
@@ -97,6 +122,7 @@ const ComboItemsField = ({ disabled }: TComboItemsFieldProps) => {
               ? price * quantity
               : null;
             const quantityError = errors?.[index]?.quantity?.message;
+            const availability = (item.variant ?? item.product).availability;
 
             return (
               <li
@@ -105,11 +131,23 @@ const ComboItemsField = ({ disabled }: TComboItemsFieldProps) => {
               >
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
                   <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <ImageThumb
-                      src={comboItemImage(item)}
-                      alt=""
-                      className="size-10"
-                    />
+                    <SimpleTooltip label="Preview what shoppers see">
+                      <button
+                        type="button"
+                        onClick={() => setPreviewIndex(index)}
+                        aria-label={`Preview ${name}`}
+                        className="group/thumb relative shrink-0 cursor-pointer rounded-lg outline-none focus-visible:ring-4 focus-visible:ring-accent-500/25"
+                      >
+                        <ImageThumb
+                          src={comboItemImage(item)}
+                          alt=""
+                          className="size-14"
+                        />
+                        <span className="absolute inset-0 flex items-center justify-center rounded-lg bg-stone-950/40 text-white opacity-0 transition-opacity group-hover/thumb:opacity-100 group-focus-visible/thumb:opacity-100">
+                          <Eye className="size-4" />
+                        </span>
+                      </button>
+                    </SimpleTooltip>
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
                         <Link
@@ -127,6 +165,14 @@ const ComboItemsField = ({ disabled }: TComboItemsFieldProps) => {
                         {item.variant && !item.variant.isActive && (
                           <Badge variant="secondary" className="shrink-0">
                             Variant hidden
+                          </Badge>
+                        )}
+                        {availability !== 'IN_STOCK' && (
+                          <Badge
+                            variant={availabilityVariant(availability)}
+                            className="shrink-0"
+                          >
+                            {AVAILABILITY_LABELS[availability]}
                           </Badge>
                         )}
                       </div>
@@ -197,6 +243,17 @@ const ComboItemsField = ({ disabled }: TComboItemsFieldProps) => {
                     </span>
 
                     <div className="flex items-center">
+                      <SimpleTooltip label="Preview">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => setPreviewIndex(index)}
+                          aria-label={`Preview ${name} up close`}
+                        >
+                          <Eye className="text-stone-400" />
+                        </Button>
+                      </SimpleTooltip>
                       <SimpleTooltip label="Move up">
                         <Button
                           type="button"
@@ -279,10 +336,30 @@ const ComboItemsField = ({ disabled }: TComboItemsFieldProps) => {
         )}
         {fields.length > 0 && (
           <p className="text-xs text-stone-400 dark:text-stone-500">
-            Order here is the order on the storefront.
+            Order here is the order on the storefront. Click a photo to check it
+            up close — or swap to another design.
           </p>
         )}
       </div>
+
+      <VariantPreviewDialog
+        target={previewItem ? toPreviewTarget(previewItem) : null}
+        quantity={previewItem?.quantity}
+        // The other designs of this product already in the combo
+        takenVariantIds={items.flatMap((item, index) =>
+          index !== previewIndex &&
+          item.productId === previewItem?.productId &&
+          item.variantId
+            ? [item.variantId]
+            : [],
+        )}
+        onUseVariant={
+          previewIndex === null || disabled
+            ? undefined
+            : (variant) => swapVariant(previewIndex, variant)
+        }
+        onClose={() => setPreviewIndex(null)}
+      />
     </div>
   );
 };

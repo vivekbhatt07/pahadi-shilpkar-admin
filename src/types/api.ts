@@ -182,6 +182,10 @@ export interface ProductVariant {
   dimensions: string | null;
   /** ≤50; null = the product's. */
   weight: string | null;
+  /** ≤300, shown under the picker while it's picked; null = nothing extra. */
+  description: string | null;
+  /** Its own marketplace listings; [] = the product's purchaseLinks. */
+  purchaseLinks: PurchaseLink[];
   stock: number;
   availability: ProductAvailability;
   /** Off = hidden from the storefront and left out of the derived figures. */
@@ -857,7 +861,43 @@ export interface ProductVariantPayload {
   measurements?: ProductMeasurementsPayload | null;
   /** null = weighs what the product does. */
   weight?: string | null;
+  description?: string | null;
+  /** [] = listed where the product is. */
+  purchaseLinks?: PurchaseLink[];
   isActive?: boolean;
+}
+
+/** GET /api/variants — `sort` defaults to `stock_asc`, lowest first. */
+export type VariantSort =
+  | 'stock_asc'
+  | 'stock_desc'
+  | 'name_asc'
+  | 'updated_desc';
+
+export interface VariantListParams {
+  /** Product name, variant title or SKU. */
+  search?: string;
+  availability?: ProductAvailability;
+  /** In stock with 5 or fewer left. */
+  lowStock?: boolean;
+  isActive?: boolean;
+  sort?: VariantSort;
+  page?: number;
+  limit?: number;
+}
+
+/** A row of GET /api/variants — every variant across products. */
+export interface InventoryVariant extends ProductVariant {
+  product: Pick<Product, 'id' | 'name' | 'slug' | 'images' | 'isActive'>;
+  /** Shoppers with a stock alert on it. */
+  waiting: number;
+  /** Combos selling it. */
+  comboCount: number;
+}
+
+export interface InventoryPage extends Paginated<InventoryVariant> {
+  /** Across every variant, whatever the filters. */
+  counts: { all: number; lowStock: number; outOfStock: number; hidden: number };
 }
 
 /**

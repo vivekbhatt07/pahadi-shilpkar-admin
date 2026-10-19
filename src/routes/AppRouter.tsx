@@ -30,6 +30,7 @@ import {
   SettingsLayout,
   StoreSettingsPage,
   TestimonialsPage,
+  VariantsPage,
 } from './pages';
 import ProtectedRoute from './ProtectedRoute';
 import PublicOnlyRoute from './PublicOnlyRoute';
@@ -86,6 +87,7 @@ export const AppRouter = () => {
             path={ROUTES.PRIVATE.PRODUCTS.EDIT(':slug')}
             element={<EditProductPage />}
           />
+          <Route path={ROUTES.PRIVATE.VARIANTS} element={<VariantsPage />} />
           <Route path={ROUTES.PRIVATE.COMBOS.ROOT} element={<CombosPage />} />
           <Route
             path={ROUTES.PRIVATE.COMBOS.CREATE}

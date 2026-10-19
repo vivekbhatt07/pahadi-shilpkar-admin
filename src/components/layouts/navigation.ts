@@ -4,6 +4,7 @@ import {
   Gift,
   Hammer,
   Inbox,
+  Layers,
   LayoutDashboard,
   Lock,
   MessageSquare,
@@ -64,6 +65,12 @@ export const NAV_SECTIONS: TNavSection[] = [
         to: ROUTES.PRIVATE.PRODUCTS.ROOT,
         icon: Package,
         keywords: 'items catalog inventory',
+      },
+      {
+        label: 'Variants',
+        to: ROUTES.PRIVATE.VARIANTS,
+        icon: Layers,
+        keywords: 'inventory stock restock designs sizes colours low stock',
       },
       {
         label: 'Combos',

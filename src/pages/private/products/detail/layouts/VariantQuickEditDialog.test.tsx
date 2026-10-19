@@ -20,6 +20,8 @@ const KALASH: ProductVariant = {
   measurements: null,
   dimensions: null,
   weight: null,
+  description: null,
+  purchaseLinks: [],
   stock: 0,
   availability: 'OUT_OF_STOCK',
   isActive: true,

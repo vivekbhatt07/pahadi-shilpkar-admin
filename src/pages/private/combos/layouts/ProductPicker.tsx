@@ -23,7 +23,10 @@ import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { cn } from '@/lib/utils';
 import type { Product, ProductVariant } from '@/types/api';
 
-import { AVAILABILITY_LABELS } from '../../products/helpers';
+import {
+  AVAILABILITY_LABELS,
+  availabilityVariant,
+} from '../../products/helpers';
 import { PRODUCT_PICKER_LIMIT } from '../constants';
 import { comboItemKey } from '../helpers';
 
@@ -46,6 +49,179 @@ const AddedMark = () => (
     aria-label="Already added"
   />
 );
+
+/**
+ * Which variant goes in: the one under the pointer (or keyboard focus) shown
+ * large above a grid of them all, so similar designs can be told apart
+ * before one is added.
+ */
+const VariantStep = ({
+  product,
+  isAdded,
+  onBack,
+  onSelect,
+}: {
+  product: Product;
+  isAdded: (variant: ProductVariant) => boolean;
+  onBack: () => void;
+  onSelect: (variant: ProductVariant) => void;
+}) => {
+  const [lookingAt, setLookingAt] = useState(product.variants[0]?.id);
+  const [photo, setPhoto] = useState(0);
+  const shown =
+    product.variants.find((variant) => variant.id === lookingAt) ??
+    product.variants[0];
+  const photos =
+    shown && shown.images.length > 0 ? shown.images : product.images;
+  const look = (variant: ProductVariant) => {
+    if (variant.id === lookingAt) return;
+    setLookingAt(variant.id);
+    setPhoto(0);
+  };
+
+  return (
+    <>
+      <div className="flex items-center gap-2 border-b border-stone-200 p-2 dark:border-stone-700">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          onClick={onBack}
+          aria-label="Back to products"
+        >
+          <ArrowLeft />
+        </Button>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium text-stone-900 dark:text-stone-50">
+            {product.name}
+          </p>
+          <p className="text-xs text-stone-400 dark:text-stone-500">
+            Which {product.variantOptions[0]?.name.toLowerCase() ?? 'variant'}{' '}
+            goes in the combo?
+          </p>
+        </div>
+      </div>
+
+      {shown && (
+        <div className="flex gap-3 border-b border-stone-200 p-3 dark:border-stone-700">
+          <div className="flex shrink-0 flex-col gap-1.5">
+            <ImageThumb
+              key={photos[photo]}
+              src={photos[photo] ?? photos[0]}
+              alt={`${product.name} — ${shown.title}`}
+              rounded="lg"
+              className="size-36 animate-in duration-200 fade-in-0 sm:size-40"
+            />
+            {photos.length > 1 && (
+              <div className="flex max-w-40 gap-1 overflow-x-auto">
+                {photos.map((url, index) => (
+                  <button
+                    key={`${url}-${index}`}
+                    type="button"
+                    onClick={() => setPhoto(index)}
+                    aria-label={`Photo ${index + 1} of ${shown.title}`}
+                    aria-pressed={index === photo}
+                    className={cn(
+                      'shrink-0 cursor-pointer rounded-md outline-none focus-visible:ring-2 focus-visible:ring-accent-500/40',
+                      index === photo
+                        ? 'ring-2 ring-accent-500'
+                        : 'opacity-70 hover:opacity-100',
+                    )}
+                  >
+                    <ImageThumb src={url} alt="" className="size-8" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="flex min-w-0 flex-col gap-1.5">
+            <p className="text-sm font-medium text-stone-900 dark:text-stone-50">
+              {shown.title}
+            </p>
+            <ul className="flex flex-col gap-0.5 text-xs text-stone-500 dark:text-stone-400">
+              {product.variantOptions.map((option) => (
+                <li key={option.name}>
+                  {option.name}:{' '}
+                  <span className="text-stone-700 dark:text-stone-200">
+                    {shown.options[option.name]}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="text-sm font-semibold tabular-nums text-stone-900 dark:text-stone-50">
+              {formatPrice(shown.price)}
+            </p>
+            <div className="flex flex-wrap gap-1">
+              <Badge variant={availabilityVariant(shown.availability)}>
+                {AVAILABILITY_LABELS[shown.availability]}
+              </Badge>
+              {!shown.isActive && <Badge variant="secondary">Hidden</Badge>}
+            </div>
+            {shown.sku && (
+              <p className="font-mono text-[11px] text-stone-400">
+                {shown.sku}
+              </p>
+            )}
+            {shown.images.length === 0 && (
+              <p className="text-[11px] text-stone-400 dark:text-stone-500">
+                No photos of its own — shoppers see the product's.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className="max-h-64 overflow-y-auto p-2">
+        <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+          {product.variants.map((variant) => {
+            const added = isAdded(variant);
+            return (
+              <li key={variant.id}>
+                <button
+                  type="button"
+                  disabled={added}
+                  onClick={() => onSelect(variant)}
+                  onMouseEnter={() => look(variant)}
+                  onFocus={() => look(variant)}
+                  aria-label={`Add ${variant.title}${added ? ' (already added)' : ''}`}
+                  className={cn(
+                    'flex w-full cursor-pointer flex-col gap-1 rounded-lg p-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-accent-500/40 disabled:cursor-default',
+                    variant.id === shown?.id
+                      ? 'bg-stone-100 dark:bg-stone-800'
+                      : 'hover:bg-stone-100 dark:hover:bg-stone-800',
+                  )}
+                >
+                  <span className="relative">
+                    <ImageThumb
+                      src={variant.images[0] ?? product.images[0]}
+                      alt=""
+                      rounded="lg"
+                      className={cn(
+                        'aspect-square w-full',
+                        (!variant.isActive || added) && 'opacity-50',
+                      )}
+                    />
+                    {added && (
+                      <span className="absolute inset-0 flex items-center justify-center">
+                        <AddedMark />
+                      </span>
+                    )}
+                  </span>
+                  <span className="truncate text-xs font-medium text-stone-800 dark:text-stone-200">
+                    {variant.title}
+                  </span>
+                  <span className="text-[11px] tabular-nums text-stone-500 dark:text-stone-400">
+                    {formatPrice(variant.price)}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </>
+  );
+};
 
 /**
  * Searchable product dropdown for adding combo items. Queries the API only
@@ -105,69 +281,21 @@ const ProductPicker = ({
           Add product
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[min(26rem,calc(100vw-2rem))] p-0">
+      <PopoverContent
+        className={cn(
+          'p-0',
+          picking
+            ? 'w-[min(34rem,calc(100vw-2rem))]'
+            : 'w-[min(26rem,calc(100vw-2rem))]',
+        )}
+      >
         {picking ? (
-          <>
-            <div className="flex items-center gap-2 border-b border-stone-200 p-2 dark:border-stone-700">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                onClick={() => setPicking(null)}
-                aria-label="Back to products"
-              >
-                <ArrowLeft />
-              </Button>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-stone-900 dark:text-stone-50">
-                  {picking.name}
-                </p>
-                <p className="text-xs text-stone-400 dark:text-stone-500">
-                  Which{' '}
-                  {picking.variantOptions[0]?.name.toLowerCase() ?? 'variant'}{' '}
-                  goes in the combo?
-                </p>
-              </div>
-            </div>
-            <div className="max-h-72 overflow-y-auto p-1">
-              {picking.variants.map((variant) => {
-                const added = isAdded(picking, variant);
-                return (
-                  <button
-                    key={variant.id}
-                    type="button"
-                    disabled={added}
-                    onClick={() => handleSelect(picking, variant)}
-                    className={optionClass}
-                  >
-                    <ImageThumb
-                      src={variant.images[0] ?? picking.images[0]}
-                      alt=""
-                      className="size-8"
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate font-medium text-stone-900 dark:text-stone-50">
-                        {variant.title}
-                      </span>
-                      <span className="block truncate text-xs text-stone-400 dark:text-stone-500">
-                        {AVAILABILITY_LABELS[variant.availability]}
-                        {variant.sku && ` · ${variant.sku}`}
-                      </span>
-                    </span>
-                    {!variant.isActive && (
-                      <Badge variant="secondary" className="shrink-0">
-                        Hidden
-                      </Badge>
-                    )}
-                    <span className="shrink-0 text-xs tabular-nums text-stone-500 dark:text-stone-400">
-                      {formatPrice(variant.price)}
-                    </span>
-                    {added && <AddedMark />}
-                  </button>
-                );
-              })}
-            </div>
-          </>
+          <VariantStep
+            product={picking}
+            isAdded={(variant) => isAdded(picking, variant)}
+            onBack={() => setPicking(null)}
+            onSelect={(variant) => handleSelect(picking, variant)}
+          />
         ) : (
           <>
             <div className="border-b border-stone-200 p-2 dark:border-stone-700">
@@ -216,7 +344,7 @@ const ProductPicker = ({
                       <ImageThumb
                         src={product.images[0]}
                         alt=""
-                        className="size-8"
+                        className="size-10"
                       />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate font-medium text-stone-900 dark:text-stone-50">

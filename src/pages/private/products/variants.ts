@@ -1,4 +1,5 @@
 import type {
+  Combo,
   Product,
   ProductAvailability,
   ProductVariantPayload,
@@ -65,6 +66,8 @@ const newRow = (
   images: [],
   measurements: EMPTY_MEASUREMENTS,
   weight: '',
+  description: '',
+  purchaseLinks: [],
   isActive: true,
 });
 
@@ -375,6 +378,27 @@ export const copyPhotosToSiblings = (
   };
 };
 
+/**
+ * Gives the row's size and weight to every variant that shares its value of
+ * an option — "every Large one measures the same".
+ */
+export const copySizeToSiblings = (
+  state: TVariantsState,
+  rowIndex: number,
+  optionIndex: number,
+): TVariantsState => {
+  const siblings = new Set(siblingIndexes(state.rows, rowIndex, optionIndex));
+  const { measurements, weight } = state.rows[rowIndex];
+  return {
+    ...state,
+    rows: state.rows.map((row, i) =>
+      siblings.has(i)
+        ? { ...row, measurements: { ...measurements }, weight }
+        : row,
+    ),
+  };
+};
+
 /** "Peacock blue" → "PEACOCK-BLUE": letters and digits, joined by hyphens. */
 const skuPart = (text: string) =>
   text
@@ -451,6 +475,11 @@ export const toVariantsFormValue = (
     // A backend from before variant sizes leaves both out
     measurements: toMeasurementsFormValue(variant.measurements ?? null),
     weight: variant.weight ?? '',
+    description: variant.description ?? '',
+    purchaseLinks: (variant.purchaseLinks ?? []).map((link) => ({
+      ...link,
+      label: link.label ?? '',
+    })),
     isActive: variant.isActive,
   })),
 });
@@ -490,9 +519,47 @@ export const toVariantsPayload = ({
     images: row.images,
     measurements: toMeasurementsPayload(row.measurements),
     weight: row.weight.trim() || null,
+    description: row.description.trim() || null,
+    purchaseLinks: row.purchaseLinks.map((link) => ({
+      ...link,
+      label: link.label.trim() || null,
+    })),
     isActive: row.isActive,
   })),
 });
+
+/** A combo, enough to name and link to it. */
+export type TComboRef = { name: string; slug: string };
+
+/** The saved variants that combos sell — by id, with the combos. */
+export type TComboUsage = Map<string, { title: string; combos: TComboRef[] }>;
+
+/**
+ * Which of a product's variants its combos sell. Removing one of them is
+ * refused on save, so the editor warns before that happens.
+ */
+export const variantComboUsage = (
+  combos: Combo[],
+  productId: string,
+): TComboUsage => {
+  const usage: TComboUsage = new Map();
+  for (const combo of combos) {
+    for (const item of combo.items) {
+      if (item.productId !== productId || !item.variantId || !item.variant) {
+        continue;
+      }
+      const entry = usage.get(item.variantId) ?? {
+        title: item.variant.title,
+        combos: [],
+      };
+      if (!entry.combos.some((ref) => ref.slug === combo.slug)) {
+        entry.combos.push({ name: combo.name, slug: combo.slug });
+      }
+      usage.set(item.variantId, entry);
+    }
+  }
+  return usage;
+};
 
 /** Most available first, as the backend ranks them. */
 const AVAILABILITY_RANK: ProductAvailability[] = [
