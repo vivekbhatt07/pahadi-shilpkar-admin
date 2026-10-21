@@ -1,4 +1,5 @@
 import {
+  Calculator,
   FolderTree,
   GalleryHorizontalEnd,
   Gift,
@@ -9,8 +10,12 @@ import {
   Lock,
   MessageSquare,
   Package,
+  PackageOpen,
   Palette,
+  Percent,
+  ReceiptIndianRupee,
   Store,
+  TrendingUp,
   User,
   Users,
   type LucideIcon,
@@ -122,6 +127,39 @@ export const NAV_SECTIONS: TNavSection[] = [
       },
     ],
   },
+  {
+    label: 'Business',
+    items: [
+      {
+        label: 'Costing & profit',
+        to: ROUTES.PRIVATE.COSTING.ROOT,
+        icon: TrendingUp,
+        end: true,
+        keywords: 'profit revenue earnings report margin money accounts',
+      },
+      {
+        label: 'Product costs',
+        to: ROUTES.PRIVATE.COSTING.LISTINGS,
+        icon: Calculator,
+        matchPath: ROUTES.PRIVATE.COSTING.LISTINGS,
+        keywords:
+          'cost sheet bill of materials margin pricing underpriced suggested price',
+      },
+      {
+        label: 'Raw materials',
+        to: ROUTES.PRIVATE.COSTING.MATERIALS,
+        icon: PackageOpen,
+        keywords:
+          'materials supplies purchases paint plate lace supplier price',
+      },
+      {
+        label: 'Sales',
+        to: ROUTES.PRIVATE.COSTING.SALES,
+        icon: ReceiptIndianRupee,
+        keywords: 'orders ledger whatsapp sales record accounts csv',
+      },
+    ],
+  },
 ];
 
 export const SETTINGS_ITEMS: TNavItem[] = [
@@ -141,7 +179,13 @@ export const SETTINGS_ITEMS: TNavItem[] = [
     label: 'Store',
     to: ROUTES.PRIVATE.SETTINGS.STORE,
     icon: Store,
-    keywords: 'whatsapp contact social',
+    keywords: 'whatsapp contact social low stock',
+  },
+  {
+    label: 'Costing',
+    to: ROUTES.PRIVATE.SETTINGS.COSTING,
+    icon: Percent,
+    keywords: 'commission marketplace fees gst tax target margin',
   },
   {
     label: 'Appearance',

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import { Layers, Search } from 'lucide-react';
+import { Download, Layers, Loader2, Search } from 'lucide-react';
 
 import EmptyState from '@/components/custom/EmptyState';
 import ListSkeleton from '@/components/custom/ListSkeleton';
@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ROUTES } from '@/constants/routes';
-import { useVariantList } from '@/hooks/products';
+import { useExportVariants, useVariantList } from '@/hooks/products';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { cn } from '@/lib/utils';
@@ -105,6 +105,7 @@ const VariantsPage = () => {
     limit: VARIANT_LIST_LIMIT,
   });
   const data = variants.data;
+  const exportVariants = useExportVariants();
   const items = data?.items ?? [];
 
   const updateParams = (patch: Record<string, string | undefined>) => {
@@ -127,6 +128,29 @@ const VariantsPage = () => {
         title="Variants"
         count={data?.counts.all}
         description="Every design, size and colour across your products — lowest stock first, so you know what to restock."
+        actions={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              exportVariants.mutate({
+                ...view.params,
+                search: debouncedSearch || undefined,
+                sort,
+              })
+            }
+            disabled={exportVariants.isPending || !data?.counts.all}
+            startAdornment={
+              exportVariants.isPending ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                <Download />
+              )
+            }
+          >
+            Export CSV
+          </Button>
+        }
       />
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

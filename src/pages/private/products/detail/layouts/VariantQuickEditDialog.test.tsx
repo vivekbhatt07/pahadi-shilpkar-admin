@@ -6,6 +6,8 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { productsService } from '@/api/services/products';
 import type { ProductVariant } from '@/types/api';
 
+import { NO_VARIANT_DETAILS } from '@/test/fixtures';
+
 import VariantQuickEditDialog from './VariantQuickEditDialog';
 
 const KALASH: ProductVariant = {
@@ -27,6 +29,7 @@ const KALASH: ProductVariant = {
   isActive: true,
   sortOrder: 2,
   whatsappUrl: null,
+  ...NO_VARIANT_DETAILS,
 };
 
 const renderDialog = (waiting: number) => {
@@ -97,5 +100,37 @@ describe('VariantQuickEditDialog', () => {
       screen.getByText(/compare-at price must be above the price/),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+  });
+
+  it('adds what arrived to the stock instead of replacing it', async () => {
+    const update = vi
+      .spyOn(productsService, 'updateVariant')
+      .mockResolvedValue({ success: true, message: 'Variant updated' });
+    update.mockClear();
+    const { user } = renderDialog(0);
+
+    await user.type(screen.getByRole('spinbutton', { name: /Arrived/ }), '5');
+
+    expect(screen.getByText(/Stock goes from 0 to 5/)).toBeInTheDocument();
+    expect(screen.getByRole('spinbutton', { name: 'Stock' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(update).toHaveBeenCalledWith('p1', 'v3', { addStock: 5 });
+  });
+
+  it('sets its own low-stock level, or goes back to the store’s', async () => {
+    const update = vi
+      .spyOn(productsService, 'updateVariant')
+      .mockResolvedValue({ success: true, message: 'Variant updated' });
+    update.mockClear();
+    const { user } = renderDialog(0);
+
+    await user.type(
+      screen.getByRole('spinbutton', { name: 'Low stock at' }),
+      '2',
+    );
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(update).toHaveBeenCalledWith('p1', 'v3', { lowStockThreshold: 2 });
   });
 });

@@ -13,6 +13,7 @@ import type { ProductDetail, ProductVariant } from '@/types/api';
 import { toComboProduct, toComboVariant } from '../helpers';
 import type { TComboFormData } from '../types';
 import ComboItemsField from './ComboItemsField';
+import { NO_VARIANT_DETAILS } from '@/test/fixtures';
 
 const variant = (
   id: string,
@@ -37,6 +38,7 @@ const variant = (
   isActive: true,
   sortOrder: 0,
   whatsappUrl: null,
+  ...NO_VARIANT_DETAILS,
 });
 
 const PEACOCK = variant('v1', 'Peacock', ['https://example.com/peacock.jpg']);

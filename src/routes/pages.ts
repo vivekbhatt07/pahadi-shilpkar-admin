@@ -57,6 +57,27 @@ export const TestimonialsPage = lazyPage(
 export const CustomersPage = lazyPage(
   () => import('@/pages/private/customers'),
 );
+export const CostingOverviewPage = lazyPage(
+  () => import('@/pages/private/costing'),
+);
+export const CostedListingsPage = lazyPage(
+  () => import('@/pages/private/costing/listings'),
+);
+export const ProductCostingPage = lazyPage(
+  () => import('@/pages/private/costing/product'),
+);
+export const ComboCostingPage = lazyPage(
+  () => import('@/pages/private/costing/combo'),
+);
+export const MaterialsPage = lazyPage(
+  () => import('@/pages/private/costing/materials'),
+);
+export const MaterialDetailPage = lazyPage(
+  () => import('@/pages/private/costing/materials/detail'),
+);
+export const SalesPage = lazyPage(
+  () => import('@/pages/private/costing/sales'),
+);
 export const SettingsLayout = lazyPage(
   () => import('@/pages/private/settings/layout'),
 );
@@ -68,6 +89,9 @@ export const SecurityPage = lazyPage(
 );
 export const StoreSettingsPage = lazyPage(
   () => import('@/pages/private/settings/store'),
+);
+export const CostingSettingsPage = lazyPage(
+  () => import('@/pages/private/settings/costing'),
 );
 export const AppearancePage = lazyPage(
   () => import('@/pages/private/settings/appearance'),

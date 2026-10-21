@@ -3,6 +3,10 @@ import type {
   CategoryListParams,
   ComboListParams,
   CategoryTreeParams,
+  CostedListingParams,
+  MaterialListParams,
+  ProfitReportParams,
+  SaleListParams,
   InquiryListParams,
   ProcessParams,
   ProductListParams,
@@ -73,5 +77,23 @@ export const QUERY_KEYS = {
   USERS: {
     ALL: ['users'] as const,
     LIST: (params: UserListParams) => ['users', 'list', params] as const,
+  },
+  /**
+   * Every costing write invalidates ALL — a material's new price moves every
+   * sheet using it, and a sale moves the reports.
+   */
+  COSTING: {
+    ALL: ['costing'] as const,
+    MATERIALS: (params: MaterialListParams) =>
+      ['costing', 'materials', params] as const,
+    MATERIAL: (id: string) => ['costing', 'material', id] as const,
+    LISTINGS: (params: CostedListingParams) =>
+      ['costing', 'listings', params] as const,
+    PRODUCT: (productId: string) => ['costing', 'product', productId] as const,
+    COMBO: (comboId: string) => ['costing', 'combo', comboId] as const,
+    SETTINGS: ['costing', 'settings'] as const,
+    SALES: (params: SaleListParams) => ['costing', 'sales', params] as const,
+    REPORT: (params: ProfitReportParams) =>
+      ['costing', 'report', params] as const,
   },
 };

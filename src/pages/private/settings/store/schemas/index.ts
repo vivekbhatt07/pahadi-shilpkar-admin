@@ -5,6 +5,7 @@ import { WHATSAPP_NUMBER_REGEX } from '@/constants/regex';
 import {
   deliveryChargeSchema,
   deliveryFeeSchema,
+  lowStockThresholdSchema,
 } from '../../../products/schemas';
 import {
   STORE_SETTINGS_FORM_FIELD_NAMES,
@@ -56,4 +57,8 @@ export const storeSettingsFormSchema = z.object({
   [STORE_SETTINGS_FORM_FIELD_NAMES.INSTAGRAM_URL]: optionalUrl,
   [STORE_SETTINGS_FORM_FIELD_NAMES.FACEBOOK_URL]: optionalUrl,
   [STORE_SETTINGS_FORM_FIELD_NAMES.YOUTUBE_URL]: optionalUrl,
+  // Always set for the store — only products and variants can leave it to it
+  [STORE_SETTINGS_FORM_FIELD_NAMES.LOW_STOCK_THRESHOLD]:
+    lowStockThresholdSchema.unwrap(),
+  [STORE_SETTINGS_FORM_FIELD_NAMES.SHOW_STOCK_LEFT]: z.boolean(),
 });

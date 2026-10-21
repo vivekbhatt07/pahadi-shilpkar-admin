@@ -186,12 +186,41 @@ export interface ProductVariant {
   description: string | null;
   /** Its own marketplace listings; [] = the product's purchaseLinks. */
   purchaseLinks: PurchaseLink[];
+  /** Its own, in place of the product's; [] = the product's. */
+  highlights: string[];
+  /** Null = the product's. */
+  material: string | null;
+  /** [] = the product's. */
+  colors: ProductColor[];
+  /** Null = the product's. */
+  careInstructions: string | null;
+  /** Shown over the product's — a label both have takes the variant's value. */
+  specifications: ProductSpecification[];
+  /** Null = the product's. */
+  videoUrl: string | null;
+  /** Its own setting; null = the product's. */
+  deliveryCharge: DeliveryCharge | null;
+  /** EXTRA only. */
+  deliveryFee: number | null;
+  /** Read-only: its own, else the product's, else the store default. */
+  delivery: Delivery | null;
+  /** Its own making time; both null = the product's. */
+  leadTimeDays: number | null;
+  leadTimeMaxDays: number | null;
   stock: number;
+  /** Its own "low stock" mark; null = the store's. */
+  lowStockThreshold: number | null;
+  /** Read-only: in stock with its threshold or fewer left. */
+  isLowStock: boolean;
+  /** Read-only: the number in "Only 3 left" on the storefront, else null. */
+  stockLeft: number | null;
   availability: ProductAvailability;
   /** Off = hidden from the storefront and left out of the derived figures. */
   isActive: boolean;
   /** Read-only: the order sent. */
   sortOrder: number;
+  /** Read-only: "Most chosen" — only worked out on a product's own page. */
+  isPopular?: boolean;
   /** Read-only: names the variant and links to it. */
   whatsappUrl: string | null;
 }
@@ -249,8 +278,17 @@ export interface Product {
   /** Stored lowercase, deduped. */
   tags: string[];
   stock: number;
+  /** Its own "low stock" mark, without variants; null = the store's. */
+  lowStockThreshold: number | null;
+  /** Read-only: low itself, or — with variants — any active variant is. */
+  isLowStock: boolean;
+  /** Read-only: "Only 3 left" without variants; null otherwise. */
+  stockLeft: number | null;
   /** Admin-chosen; independent of stock. */
   availability: ProductAvailability;
+  /** How long a made-to-order piece takes, in days; max null = one figure. */
+  leadTimeDays: number | null;
+  leadTimeMaxDays: number | null;
   isFeatured: boolean;
   isBestseller: boolean;
   isActive: boolean;
@@ -507,6 +545,10 @@ export interface StoreSettings {
   instagramUrl: string | null;
   facebookUrl: string | null;
   youtubeUrl: string | null;
+  /** In stock with this many left, or fewer, is low. 5 until changed. */
+  lowStockThreshold: number;
+  /** "Only 3 left" on the storefront while stock is low. */
+  showStockLeft: boolean;
   /** Null until first saved. */
   updatedAt: string | null;
 }
@@ -538,6 +580,9 @@ export interface Testimonial {
   userId: string;
   productId: string | null;
   comboId: string | null;
+  /** The variant the author bought, when they said; null once it's gone. */
+  variantId: string | null;
+  variant: { id: string; title: string } | null;
   user: {
     id: string;
     firstName: string | null;
@@ -715,6 +760,9 @@ export interface Inquiry {
   productId: string | null;
   /** Null when none was picked or the product was deleted since. */
   product: { id: string; name: string; slug: string; images: string[] } | null;
+  /** The variant the shopper was looking at; null when none, or gone since. */
+  variantId: string | null;
+  variant: { id: string; title: string; images: string[] } | null;
   /** Set when the sender was signed in. */
   userId: string | null;
   createdAt: string;
@@ -864,6 +912,20 @@ export interface ProductVariantPayload {
   description?: string | null;
   /** [] = listed where the product is. */
   purchaseLinks?: PurchaseLink[];
+  /** [] and null = the product's. */
+  highlights?: string[];
+  material?: string | null;
+  colors?: ProductColor[];
+  careInstructions?: string | null;
+  specifications?: ProductSpecification[];
+  videoUrl?: string | null;
+  /** null = delivered as the product is. */
+  deliveryCharge?: DeliveryCharge | null;
+  deliveryFee?: number | null;
+  leadTimeDays?: number | null;
+  leadTimeMaxDays?: number | null;
+  /** null = the store's. */
+  lowStockThreshold?: number | null;
   isActive?: boolean;
 }
 
@@ -878,7 +940,7 @@ export interface VariantListParams {
   /** Product name, variant title or SKU. */
   search?: string;
   availability?: ProductAvailability;
-  /** In stock with 5 or fewer left. */
+  /** In stock with its threshold (or the store's) or fewer left. */
   lowStock?: boolean;
   isActive?: boolean;
   sort?: VariantSort;
@@ -907,8 +969,16 @@ export interface InventoryPage extends Paginated<InventoryVariant> {
 export type UpdateVariantPayload = Partial<
   Pick<
     ProductVariantPayload,
-    'price' | 'compareAtPrice' | 'stock' | 'availability' | 'isActive'
-  >
+    | 'price'
+    | 'compareAtPrice'
+    | 'stock'
+    | 'availability'
+    | 'isActive'
+    | 'lowStockThreshold'
+  > & {
+    /** Added to the stock as it is when saved — never with `stock`. */
+    addStock: number;
+  }
 >;
 
 export interface CreateProductPayload extends DeliveryPayload {
@@ -939,7 +1009,11 @@ export interface CreateProductPayload extends DeliveryPayload {
   specifications?: ProductSpecification[];
   tags?: string[];
   stock?: number;
+  /** null = the store's. */
+  lowStockThreshold?: number | null;
   availability?: ProductAvailability;
+  leadTimeDays?: number | null;
+  leadTimeMaxDays?: number | null;
   isFeatured?: boolean;
   isBestseller?: boolean;
   whatsappMessage?: string | null;
@@ -1015,6 +1089,8 @@ export interface UpdateSettingsPayload extends DeliveryPayload {
   instagramUrl?: string | null;
   facebookUrl?: string | null;
   youtubeUrl?: string | null;
+  lowStockThreshold?: number;
+  showStockLeft?: boolean;
 }
 
 export interface BannerListParams {
@@ -1054,4 +1130,501 @@ export interface UserListParams {
   search?: string;
   page?: number;
   limit?: number;
+}
+
+/* ── Costing ───────────────────────────────────────────────────── */
+
+/** What a raw material is counted in — purchases and cost sheets alike. */
+export type MaterialUnit =
+  | 'PIECE'
+  | 'PAIR'
+  | 'SET'
+  | 'PACKET'
+  | 'SHEET'
+  | 'ROLL'
+  | 'METRE'
+  | 'CENTIMETRE'
+  | 'GRAM'
+  | 'KILOGRAM'
+  | 'MILLILITRE'
+  | 'LITRE';
+
+/** A cost sheet line: a raw material used up, or money spent per batch. */
+export type CostLineType =
+  | 'MATERIAL'
+  | 'LABOUR'
+  | 'PACKAGING'
+  | 'DELIVERY'
+  | 'OVERHEAD'
+  | 'OTHER';
+
+/** Where an order came from. OFFLINE = a shop, an exhibition, a mela. */
+export type SaleChannel =
+  | 'WHATSAPP'
+  | 'INSTAGRAM'
+  | 'FACEBOOK'
+  | 'AMAZON'
+  | 'FLIPKART'
+  | 'MEESHO'
+  | 'ETSY'
+  | 'WEBSITE'
+  | 'OFFLINE'
+  | 'OTHER';
+
+/**
+ * A listing's price against its cost. NO_COST has no cost sheet to judge
+ * by; BELOW_TARGET is under the costing settings' target margin.
+ */
+export type CostingStatus = 'NO_COST' | 'LOSS' | 'BELOW_TARGET' | 'HEALTHY';
+
+export interface RawMaterial {
+  id: string;
+  name: string;
+  /** Free grouping — "Base", "Paint", "Decoration". */
+  category: string | null;
+  unit: MaterialUnit;
+  /** What one unit costs now, up to 4 decimals (₹0.4 a ml). */
+  unitCost: number;
+  supplier: string | null;
+  notes: string | null;
+  /** Off = kept for the sheets using it, but not offered for new lines. */
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MaterialPurchase {
+  id: string;
+  materialId: string;
+  /** In the material's unit. */
+  quantity: number;
+  totalCost: number;
+  /** Read-only: totalCost / quantity. */
+  unitCost: number;
+  supplier: string | null;
+  note: string | null;
+  purchasedAt: string;
+  createdAt: string;
+}
+
+/** A row of GET /api/costing/materials. */
+export interface RawMaterialListItem extends RawMaterial {
+  /** Cost sheets that use it. */
+  usageCount: number;
+  lastPurchase: Pick<MaterialPurchase, 'purchasedAt' | 'unitCost'> | null;
+  /** The latest price against the one before, in %; null with fewer than two. */
+  priceChangePercent: number | null;
+}
+
+export interface MaterialsPage extends Paginated<RawMaterialListItem> {
+  /** Every category in use. */
+  categories: string[];
+}
+
+export type MaterialSort = 'name_asc' | 'cost_desc' | 'updated_desc';
+
+export interface MaterialListParams {
+  /** Name, category or supplier. */
+  search?: string;
+  category?: string;
+  isActive?: boolean;
+  sort?: MaterialSort;
+  page?: number;
+  limit?: number;
+}
+
+/** What a cost sheet is for — a product, a variant of one, or a combo. */
+export interface CostSheetTarget {
+  kind: 'PRODUCT' | 'VARIANT' | 'COMBO';
+  productId: string | null;
+  variantId: string | null;
+  comboId: string | null;
+  /** "Karwa Chauth Thali — Peacock" */
+  name: string;
+  /** The product's or combo's. */
+  slug: string;
+}
+
+export interface MaterialUsage {
+  sheetId: string;
+  target: CostSheetTarget;
+  /** Per batch, wastage left out. */
+  quantity: number;
+  batchSize: number;
+  /** What it adds to one piece, wastage included. */
+  costPerPiece: number;
+}
+
+/** From GET /api/costing/materials/:id and every purchase write. */
+export interface RawMaterialDetail extends RawMaterialListItem {
+  /** Newest first, up to 100. */
+  purchases: MaterialPurchase[];
+  usage: MaterialUsage[];
+}
+
+export interface CreateMaterialPayload {
+  name: string;
+  category?: string | null;
+  unit: MaterialUnit;
+  unitCost: number;
+  supplier?: string | null;
+  notes?: string | null;
+  isActive?: boolean;
+}
+
+export type UpdateMaterialPayload = Partial<CreateMaterialPayload>;
+
+export interface RecordPurchasePayload {
+  quantity: number;
+  totalCost: number;
+  supplier?: string | null;
+  note?: string | null;
+  /** ISO; now when left out. */
+  purchasedAt?: string;
+  /** On unless false — an old bill entered late shouldn't set today's cost. */
+  updateUnitCost?: boolean;
+}
+
+/** A batch's or one piece's costs, by type of cost and in all. */
+export type CostBreakdown = Record<CostLineType, number> & { total: number };
+
+export interface CostLine {
+  id: string;
+  type: CostLineType;
+  materialId: string | null;
+  material: Pick<
+    RawMaterial,
+    'id' | 'name' | 'unit' | 'unitCost' | 'isActive'
+  > | null;
+  /** MATERIAL — per batch. */
+  quantity: number | null;
+  wastagePercent: number;
+  /** Every other type — and an optional note on a material line. */
+  label: string | null;
+  /** Every other type — per batch. */
+  amount: number | null;
+  /** Read-only: what the line costs the batch. */
+  cost: number;
+}
+
+export interface CostSheet {
+  id: string;
+  /** The pieces the lines make. */
+  batchSize: number;
+  notes: string | null;
+  lines: CostLine[];
+  batchCost: CostBreakdown;
+  /** One piece: batchCost / batchSize. */
+  unitCost: CostBreakdown;
+  updatedAt: string;
+}
+
+export interface CostLinePayload {
+  type: CostLineType;
+  materialId?: string | null;
+  quantity?: number | null;
+  wastagePercent?: number;
+  label?: string | null;
+  amount?: number | null;
+}
+
+/** The whole sheet, each time — exactly one of the three targets. */
+export interface SaveCostSheetPayload {
+  productId?: string;
+  variantId?: string;
+  comboId?: string;
+  batchSize?: number;
+  notes?: string | null;
+  lines: CostLinePayload[];
+}
+
+/** What a channel keeps of a sale — "15% + ₹20". */
+export interface ChannelFee {
+  channel: SaleChannel;
+  percent: number;
+  fixed: number;
+}
+
+export interface CostingSettings {
+  /** A channel left out keeps nothing. */
+  channelFees: ChannelFee[];
+  targetMarginPercent: number | null;
+  /** GST (or another tax) included in prices. */
+  taxPercent: number | null;
+  updatedAt: string | null;
+}
+
+export type UpdateCostingSettingsPayload = Partial<
+  Omit<CostingSettings, 'updatedAt'>
+>;
+
+/** What one piece sold on a channel leaves the store. */
+export interface ChannelProfit {
+  channel: SaleChannel;
+  price: number;
+  /** What the buyer pays for delivery on top. */
+  deliveryCharged: number;
+  tax: number;
+  channelFee: number;
+  cost: number;
+  profit: number;
+  /** Of what's left after tax; null when that's nothing. */
+  marginPercent: number | null;
+}
+
+/** OWN sheet, the PRODUCT's (a variant without one), or its ITEMS' (a combo). */
+export type CostSource = 'OWN' | 'PRODUCT' | 'ITEMS';
+
+export interface PriceAnalysis {
+  unitCost: number | null;
+  costSource: CostSource | null;
+  breakdown: CostBreakdown | null;
+  /** Every channel; empty without a cost. */
+  byChannel: ChannelProfit[];
+  /** On WhatsApp: the price reaching the target margin, and break-even. */
+  suggestedPrice: number | null;
+  breakEvenPrice: number | null;
+  status: CostingStatus;
+}
+
+export interface ProductCosting {
+  product: Pick<
+    Product,
+    'id' | 'name' | 'slug' | 'images' | 'price' | 'isActive' | 'delivery'
+  > & { hasVariants: boolean };
+  sheet: CostSheet | null;
+  /** Without variants. */
+  analysis: PriceAnalysis | null;
+  variants: {
+    variant: Pick<
+      ProductVariant,
+      'id' | 'title' | 'price' | 'images' | 'isActive' | 'delivery'
+    >;
+    /** Its own; without one it costs the product's. */
+    sheet: CostSheet | null;
+    analysis: PriceAnalysis;
+  }[];
+  settings: CostingSettings;
+}
+
+export interface ComboCosting {
+  combo: Pick<
+    Combo,
+    'id' | 'name' | 'slug' | 'images' | 'price' | 'isActive' | 'delivery'
+  >;
+  items: {
+    name: string;
+    productId: string;
+    variantId: string | null;
+    quantity: number;
+    unitCost: number | null;
+    costSource: CostSource | null;
+  }[];
+  /** Null while an item has no cost. */
+  itemsCost: number | null;
+  /** The combo's own extras — the box, the ribbon. */
+  sheet: CostSheet | null;
+  analysis: PriceAnalysis;
+  settings: CostingSettings;
+}
+
+/** A row of GET /api/costing/listings. */
+export interface CostedListing {
+  kind: CostSheetTarget['kind'];
+  productId: string | null;
+  variantId: string | null;
+  comboId: string | null;
+  name: string;
+  variantTitle: string | null;
+  slug: string;
+  image: string | null;
+  sku: string | null;
+  price: number;
+  isActive: boolean;
+  unitCost: number | null;
+  costSource: CostSource | null;
+  /** One piece, on the channel asked for. */
+  profit: number | null;
+  marginPercent: number | null;
+  suggestedPrice: number | null;
+  status: CostingStatus;
+}
+
+export type CostedListingSort =
+  | 'margin_asc'
+  | 'margin_desc'
+  | 'profit_desc'
+  | 'cost_desc'
+  | 'name_asc';
+
+export interface CostedListingParams {
+  search?: string;
+  kind?: CostSheetTarget['kind'];
+  status?: CostingStatus;
+  channel?: SaleChannel;
+  sort?: CostedListingSort;
+  page?: number;
+  limit?: number;
+}
+
+export interface CostedListingsPage extends Paginated<CostedListing> {
+  channel: SaleChannel;
+  /** Across every listing, whatever the filters. */
+  counts: Record<CostingStatus | 'all', number>;
+}
+
+export interface SaleItem {
+  id: string;
+  name: string;
+  quantity: number;
+  unitPrice: number;
+  unitCost: number;
+  productId: string | null;
+  variantId: string | null;
+  comboId: string | null;
+  /** What it links to now — null once deleted; the name stays. */
+  product: { id: string; name: string; slug: string; images: string[] } | null;
+  variant: { id: string; title: string; images: string[] } | null;
+  combo: { id: string; name: string; slug: string; images: string[] } | null;
+}
+
+/** Always worked out on read. */
+export interface SaleTotals {
+  units: number;
+  itemsTotal: number;
+  discount: number;
+  deliveryCharged: number;
+  /** What buyers paid. */
+  revenue: number;
+  tax: number;
+  netRevenue: number;
+  costOfGoods: number;
+  deliveryCost: number;
+  channelFee: number;
+  otherCost: number;
+  profit: number;
+  marginPercent: number | null;
+}
+
+export interface Sale {
+  id: string;
+  soldAt: string;
+  channel: SaleChannel;
+  customerName: string | null;
+  customerPhone: string | null;
+  deliveryCharged: number;
+  deliveryCost: number;
+  discount: number;
+  channelFee: number;
+  tax: number;
+  otherCost: number;
+  note: string | null;
+  /** Whether saving it took anything out of stock. */
+  stockDeducted: boolean;
+  items: SaleItem[];
+  totals: SaleTotals;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * A product (with its variant), a combo, or a custom piece. A name, price or
+ * cost left out is taken from what was sold; a custom piece needs a name and
+ * a price.
+ */
+export interface SaleItemPayload {
+  productId?: string | null;
+  variantId?: string | null;
+  comboId?: string | null;
+  name?: string;
+  quantity: number;
+  unitPrice?: number;
+  unitCost?: number;
+}
+
+export interface CreateSalePayload {
+  /** ISO; now when left out. */
+  soldAt?: string;
+  channel: SaleChannel;
+  customerName?: string | null;
+  customerPhone?: string | null;
+  items: SaleItemPayload[];
+  deliveryCharged?: number;
+  deliveryCost?: number;
+  discount?: number;
+  /** Left out, worked out from the costing settings. */
+  channelFee?: number;
+  tax?: number;
+  otherCost?: number;
+  note?: string | null;
+  /** Take what was sold out of stock — a combo's items, for a combo. */
+  deductStock?: boolean;
+}
+
+/** A field left out keeps its value; items, when sent, replace the list. */
+export type UpdateSalePayload = Partial<CreateSalePayload>;
+
+export interface SaleListParams {
+  /** "2026-10-05" — that whole IST day. */
+  from?: string;
+  to?: string;
+  channel?: SaleChannel;
+  /** Customer, phone, note or an item's name. */
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface SalesPage extends Paginated<Sale> {
+  /** Every sale the filters match, not only this page. */
+  summary: SaleTotals & { sales: number };
+}
+
+export interface ProfitReportParams {
+  from?: string;
+  to?: string;
+}
+
+export interface ProfitReport {
+  from: string;
+  to: string;
+  granularity: 'day' | 'month';
+  totals: SaleTotals & {
+    sales: number;
+    averageOrderValue: number | null;
+    materialSpend: number;
+  };
+  /** Oldest first, zero-filled. */
+  series: {
+    period: string;
+    sales: number;
+    revenue: number;
+    costs: number;
+    profit: number;
+  }[];
+  byChannel: {
+    channel: SaleChannel;
+    sales: number;
+    revenue: number;
+    profit: number;
+    marginPercent: number | null;
+  }[];
+  /** By gross profit — price less cost, before the order's discount and fees. */
+  topItems: {
+    name: string;
+    productId: string | null;
+    variantId: string | null;
+    comboId: string | null;
+    units: number;
+    revenue: number;
+    grossProfit: number;
+    marginPercent: number | null;
+  }[];
+  materialSpend: {
+    materialId: string;
+    name: string;
+    unit: MaterialUnit;
+    quantity: number;
+    spent: number;
+  }[];
 }

@@ -223,6 +223,47 @@ export const purchaseLinkSchema = z.object({
   ),
 });
 
+/**
+ * Shared with the combo and Store settings forms. `null` = not set — a
+ * product or combo then follows the store default.
+ */
+export const deliveryChargeSchema = z.enum(['INCLUDED', 'EXTRA']).nullable();
+
+/** Only kept while delivery is charged extra; `null` = quoted with the order. */
+export const deliveryFeeSchema = z
+  .number({ error: DELIVERY.FEE_INVALID })
+  .refine(
+    (fee) =>
+      fee > 0 &&
+      fee <= PRODUCT_LIMITS.DELIVERY_FEE_MAX &&
+      MONEY_REGEX.test(String(fee)),
+    DELIVERY.FEE_INVALID,
+  )
+  .nullable();
+
+/** Days a made-to-order piece takes; `null` = not said. */
+const leadTimeSchema = z
+  .number({ error: PRODUCT.LEAD_TIME_INVALID })
+  .int(PRODUCT.LEAD_TIME_INVALID)
+  .min(1, PRODUCT.LEAD_TIME_INVALID)
+  .max(PRODUCT_LIMITS.LEAD_TIME_DAYS_MAX, PRODUCT.LEAD_TIME_INVALID)
+  .nullable();
+
+/** "Only 3 left" from this many down; `null` = the store's level. */
+export const lowStockThresholdSchema = z
+  .number({ error: PRODUCT.LOW_STOCK_THRESHOLD_INVALID })
+  .int(PRODUCT.LOW_STOCK_THRESHOLD_INVALID)
+  .min(0, PRODUCT.LOW_STOCK_THRESHOLD_INVALID)
+  .max(
+    PRODUCT_LIMITS.LOW_STOCK_THRESHOLD_MAX,
+    PRODUCT.LOW_STOCK_THRESHOLD_INVALID,
+  )
+  .nullable();
+
+/** "Ready in 7 days" or "Ready in 10–15 days" — a longest needs a shortest. */
+const isValidLeadTime = (min: number | null, max: number | null) =>
+  max === null || (min !== null && max >= min);
+
 /** One row of the variants table. */
 const variantSchema = z
   .object({
@@ -265,6 +306,36 @@ const variantSchema = z
     purchaseLinks: z
       .array(purchaseLinkSchema)
       .max(PRODUCT_LIMITS.PURCHASE_LINKS_MAX, PRODUCT.PURCHASE_LINKS_MAX),
+    /** Its own details, on the product's rules — [] and '' show the product's. */
+    highlights: z
+      .array(
+        z
+          .string()
+          .trim()
+          .min(1)
+          .max(PRODUCT_LIMITS.HIGHLIGHT_MAX, PRODUCT.HIGHLIGHT_MAX),
+      )
+      .max(PRODUCT_LIMITS.HIGHLIGHTS_MAX, PRODUCT.HIGHLIGHTS_MAX),
+    material: z
+      .string()
+      .trim()
+      .max(PRODUCT_LIMITS.MATERIAL_MAX, PRODUCT.MATERIAL_MAX),
+    colors: colorsSchema,
+    careInstructions: z
+      .string()
+      .trim()
+      .max(PRODUCT_LIMITS.CARE_INSTRUCTIONS_MAX, PRODUCT.CARE_INSTRUCTIONS_MAX),
+    /** Shown over the product's — a label both have takes this value. */
+    specifications: z
+      .array(specificationSchema)
+      .max(PRODUCT_LIMITS.SPECIFICATIONS_MAX, PRODUCT.SPECS_MAX),
+    videoUrl: optionalUrl(PRODUCT.VIDEO_URL_INVALID),
+    /** `null` = delivered as the product is. */
+    deliveryCharge: deliveryChargeSchema,
+    deliveryFee: deliveryFeeSchema,
+    leadTimeDays: leadTimeSchema,
+    leadTimeMaxDays: leadTimeSchema,
+    lowStockThreshold: lowStockThresholdSchema,
     isActive: z.boolean(),
   })
   .refine(
@@ -274,25 +345,11 @@ const variantSchema = z
       message: PRODUCT.COMPARE_AT_PRICE_GREATER,
       path: ['compareAtPrice'],
     },
-  );
-
-/**
- * Shared with the combo and Store settings forms. `null` = not set — a
- * product or combo then follows the store default.
- */
-export const deliveryChargeSchema = z.enum(['INCLUDED', 'EXTRA']).nullable();
-
-/** Only kept while delivery is charged extra; `null` = quoted with the order. */
-export const deliveryFeeSchema = z
-  .number({ error: DELIVERY.FEE_INVALID })
-  .refine(
-    (fee) =>
-      fee > 0 &&
-      fee <= PRODUCT_LIMITS.DELIVERY_FEE_MAX &&
-      MONEY_REGEX.test(String(fee)),
-    DELIVERY.FEE_INVALID,
   )
-  .nullable();
+  .refine(
+    (variant) => isValidLeadTime(variant.leadTimeDays, variant.leadTimeMaxDays),
+    { message: PRODUCT.LEAD_TIME_ORDER, path: ['leadTimeMaxDays'] },
+  );
 
 export const productFormSchema = z
   .object({
@@ -410,8 +467,19 @@ export const productFormSchema = z
     [PRODUCT_FORM_FIELD_NAMES.VARIANTS]: z
       .array(variantSchema)
       .max(PRODUCT_LIMITS.VARIANTS_MAX, PRODUCT.VARIANTS_MAX),
+    [PRODUCT_FORM_FIELD_NAMES.LEAD_TIME_DAYS]: leadTimeSchema,
+    [PRODUCT_FORM_FIELD_NAMES.LEAD_TIME_MAX_DAYS]: leadTimeSchema,
+    [PRODUCT_FORM_FIELD_NAMES.LOW_STOCK_THRESHOLD]: lowStockThresholdSchema,
   })
   .superRefine((data, ctx) => {
+    if (!isValidLeadTime(data.leadTimeDays, data.leadTimeMaxDays)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: [PRODUCT_FORM_FIELD_NAMES.LEAD_TIME_MAX_DAYS],
+        message: PRODUCT.LEAD_TIME_ORDER,
+      });
+    }
+
     // With variants, they carry the prices — and each SKU names one thing
     if (data.variantOptions.length > 0) {
       if (data.variants.length === 0) {

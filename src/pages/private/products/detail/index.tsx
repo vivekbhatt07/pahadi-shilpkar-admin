@@ -49,6 +49,7 @@ import {
 } from '../../combos/helpers';
 import { PRODUCT_DETAIL_COMBOS_LIMIT } from '../../combos/constants';
 import type { TCreateComboState } from '../../combos/types';
+import { ProductCostingCard } from '../../costing/components/CostingSummaryCard';
 import ListingTestimonials from '../../testimonials/layouts/ListingTestimonials';
 import { PRODUCT_DELETE_CONFIRMATION } from '../constants';
 import { AVAILABILITY_LABELS, availabilityVariant } from '../helpers';
@@ -387,6 +388,8 @@ const ProductDetailPage = () => {
               </CardContent>
             </Card>
           )}
+
+          <ProductCostingCard productId={item.id} />
 
           <Card>
             <CardHeader>

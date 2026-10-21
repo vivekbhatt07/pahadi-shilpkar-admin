@@ -61,6 +61,10 @@ const toFormData = (product: Product): TProductFormData => ({
   metaDescription: product.metaDescription ?? '',
   categoryId: product.categoryId,
   ...toVariantsFields(product),
+  // A backend from before these leaves them out
+  leadTimeDays: product.leadTimeDays ?? null,
+  leadTimeMaxDays: product.leadTimeMaxDays ?? null,
+  lowStockThreshold: product.lowStockThreshold ?? null,
 });
 
 /**
@@ -181,8 +185,17 @@ const EditProductPage = () => {
       }),
       ...(changed.tags !== undefined && { tags: changed.tags }),
       ...(changed.stock !== undefined && { stock: changed.stock }),
+      ...(changed.lowStockThreshold !== undefined && {
+        lowStockThreshold: changed.lowStockThreshold,
+      }),
       ...(changed.availability !== undefined && {
         availability: changed.availability,
+      }),
+      // Sent as a pair, so the longest is always judged against the shortest
+      ...((changed.leadTimeDays !== undefined ||
+        changed.leadTimeMaxDays !== undefined) && {
+        leadTimeDays: data.leadTimeDays,
+        leadTimeMaxDays: data.leadTimeMaxDays,
       }),
       ...(changed.isFeatured !== undefined && {
         isFeatured: changed.isFeatured,

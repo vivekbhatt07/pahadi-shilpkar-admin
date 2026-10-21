@@ -44,6 +44,11 @@ export const PRODUCT_FORM_FIELD_NAMES = {
   /** What the variants differ by — sent together with VARIANTS. */
   VARIANT_OPTIONS: 'variantOptions',
   VARIANTS: 'variants',
+  /** Making time of a made-to-order piece, in days; null = not said. */
+  LEAD_TIME_DAYS: 'leadTimeDays',
+  LEAD_TIME_MAX_DAYS: 'leadTimeMaxDays',
+  /** Without variants — each variant has its own. Null = the store's. */
+  LOW_STOCK_THRESHOLD: 'lowStockThreshold',
 } as const;
 
 export const PRODUCT_LIMITS = {
@@ -81,6 +86,10 @@ export const PRODUCT_LIMITS = {
   VARIANTS_MAX: 100,
   VARIANT_IMAGES_MAX: 6,
   VARIANT_DESCRIPTION_MAX: 300,
+  LEAD_TIME_DAYS_MAX: 365,
+  LOW_STOCK_THRESHOLD_MAX: 1000,
+  /** What one "add to stock" can add. */
+  RESTOCK_MAX: 100000,
 } as const;
 
 /**
@@ -215,8 +224,12 @@ export const SORT_OPTIONS: { value: ProductSort; label: string }[] = [
   { value: 'name_desc', label: 'Name: Z–A' },
 ];
 
-/** Stock at or below this (but above 0) is flagged as low in the list. */
-export const LOW_STOCK_THRESHOLD = 5;
+/**
+ * The store's low-stock level until it's set in Store settings — the
+ * backend's default too. The API flags low stock itself (`isLowStock`); this
+ * is only for the form's hints.
+ */
+export const DEFAULT_LOW_STOCK_THRESHOLD = 5;
 
 /** Backend default is 20; max is 100. */
 export const PRODUCT_LIST_LIMIT = 20;

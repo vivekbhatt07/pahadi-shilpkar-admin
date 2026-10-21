@@ -21,11 +21,22 @@ export const ROUTES = {
     INQUIRIES: '/inquiries',
     TESTIMONIALS: '/testimonials',
     CUSTOMERS: '/customers',
+    /** What things cost to make, and what the store earned. */
+    COSTING: {
+      ROOT: '/costing',
+      LISTINGS: '/costing/products',
+      PRODUCT: (productId: string) => `/costing/products/${productId}`,
+      COMBO: (comboId: string) => `/costing/combos/${comboId}`,
+      MATERIALS: '/costing/materials',
+      MATERIAL: (id: string) => `/costing/materials/${id}`,
+      SALES: '/costing/sales',
+    },
     SETTINGS: {
       ROOT: '/settings',
       PROFILE: '/settings/profile',
       SECURITY: '/settings/security',
       STORE: '/settings/store',
+      COSTING: '/settings/costing',
       APPEARANCE: '/settings/appearance',
     },
   },

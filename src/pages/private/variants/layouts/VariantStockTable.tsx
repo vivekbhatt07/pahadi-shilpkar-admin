@@ -45,7 +45,7 @@ type TVariantStockTableProps = {
 };
 
 const Stock = ({ variant }: { variant: InventoryVariant }) => {
-  const flag = stockFlag(variant.availability, variant.stock);
+  const flag = stockFlag(variant);
   if (flag === 'empty') {
     return (
       <SimpleTooltip label="Shown as in stock, but none are left">

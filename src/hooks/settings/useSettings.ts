@@ -14,6 +14,8 @@ const EMPTY_SETTINGS: StoreSettings = {
   instagramUrl: null,
   facebookUrl: null,
   youtubeUrl: null,
+  lowStockThreshold: 5,
+  showStockLeft: true,
   updatedAt: null,
 };
 

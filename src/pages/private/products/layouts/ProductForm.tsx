@@ -43,15 +43,18 @@ import { Textarea } from '@/components/ui/textarea';
 import { ROUTES } from '@/constants/routes';
 import { formatPrice } from '@/helpers/format';
 import { useCombos } from '@/hooks/combos';
+import { useSettings } from '@/hooks/settings';
 import { useUnsavedChangesWarning } from '@/hooks/useUnsavedChangesWarning';
 import type { Product } from '@/types/api';
 
 import {
   AVAILABILITY_OPTIONS,
   DEACTIVATE_WARNING,
+  DEFAULT_LOW_STOCK_THRESHOLD,
   PRODUCT_FORM_FIELD_NAMES,
   PRODUCT_LIMITS,
 } from '../constants';
+import { describeLeadTime } from '../helpers';
 import { productFormSchema } from '../schemas';
 import { summarizeVariantRows, variantComboUsage } from '../variants';
 import type { TProductFormData, TProductFormMode } from '../types';
@@ -151,6 +154,9 @@ const ProductForm = ({
     CATEGORY_ID,
     VARIANT_OPTIONS,
     VARIANTS,
+    LEAD_TIME_DAYS,
+    LEAD_TIME_MAX_DAYS,
+    LOW_STOCK_THRESHOLD,
   } = PRODUCT_FORM_FIELD_NAMES;
 
   const form = useForm<TProductFormData>({
@@ -174,6 +180,11 @@ const ProductForm = ({
   const priceValue = useWatch({ control, name: PRICE });
   const compareAtPriceValue = useWatch({ control, name: COMPARE_AT_PRICE });
   const isActiveValue = useWatch({ control, name: IS_ACTIVE });
+  const leadTimeDaysValue = useWatch({ control, name: LEAD_TIME_DAYS });
+  const leadTimeMaxDaysValue = useWatch({ control, name: LEAD_TIME_MAX_DAYS });
+  const settings = useSettings();
+  const storeThreshold =
+    settings.data?.lowStockThreshold ?? DEFAULT_LOW_STOCK_THRESHOLD;
   // With variants, the price, stock and availability are theirs
   const hasVariants = useWatch({ control, name: VARIANT_OPTIONS }).length > 0;
   const variantRows = useWatch({ control, name: VARIANTS });
@@ -823,8 +834,108 @@ const ProductForm = ({
                         </FormItem>
                       )}
                     />
+
+                    <FormField
+                      control={form.control}
+                      name={LOW_STOCK_THRESHOLD}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel optional>Low stock at</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              inputMode="numeric"
+                              min={0}
+                              max={PRODUCT_LIMITS.LOW_STOCK_THRESHOLD_MAX}
+                              step={1}
+                              placeholder={`Store's level (${storeThreshold})`}
+                              disabled={isPending}
+                              name={field.name}
+                              ref={field.ref}
+                              onBlur={field.onBlur}
+                              value={nullableNumberValue(field.value)}
+                              onChange={(event) =>
+                                field.onChange(toNullableNumber(event))
+                              }
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            From this many down it's flagged here, and shoppers
+                            see “Only 3 left”.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </>
                 )}
+
+                <div className="flex flex-col gap-2">
+                  <div className="grid grid-cols-2 gap-3">
+                    <FormField
+                      control={form.control}
+                      name={LEAD_TIME_DAYS}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel optional>Ready in (days)</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              inputMode="numeric"
+                              min={1}
+                              max={PRODUCT_LIMITS.LEAD_TIME_DAYS_MAX}
+                              step={1}
+                              placeholder="10"
+                              disabled={isPending}
+                              name={field.name}
+                              ref={field.ref}
+                              onBlur={field.onBlur}
+                              value={nullableNumberValue(field.value)}
+                              onChange={(event) =>
+                                field.onChange(toNullableNumber(event))
+                              }
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name={LEAD_TIME_MAX_DAYS}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel optional>Up to (days)</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              inputMode="numeric"
+                              min={1}
+                              max={PRODUCT_LIMITS.LEAD_TIME_DAYS_MAX}
+                              step={1}
+                              placeholder="15"
+                              disabled={isPending}
+                              name={field.name}
+                              ref={field.ref}
+                              onBlur={field.onBlur}
+                              value={nullableNumberValue(field.value)}
+                              onChange={(event) =>
+                                field.onChange(toNullableNumber(event))
+                              }
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <p className="text-xs text-stone-500 dark:text-stone-400">
+                    {describeLeadTime(leadTimeDaysValue, leadTimeMaxDaysValue)
+                      ? `Made-to-order shoppers see “${describeLeadTime(leadTimeDaysValue, leadTimeMaxDaysValue)}”.`
+                      : 'How long a made-to-order piece takes — shown while it’s Made to order.'}
+                    {hasVariants && ' A variant can set its own.'}
+                  </p>
+                </div>
               </CardContent>
             </Card>
 

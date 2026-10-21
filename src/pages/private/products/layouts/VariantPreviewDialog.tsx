@@ -141,7 +141,7 @@ const PreviewBody = ({
       : data.images
     : target.images;
   const sold = variant ?? data;
-  const flag = sold && stockFlag(sold.availability, sold.stock);
+  const flag = sold && stockFlag(sold);
   const isSwap =
     onUseVariant !== undefined &&
     variant !== null &&
@@ -360,7 +360,7 @@ const VariantPreviewDialog = (props: TVariantPreviewDialogProps) => (
     open={props.target !== null}
     onOpenChange={(open) => !open && props.onClose()}
   >
-    <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-3xl">
+    <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-3xl md:max-w-3xl">
       {props.target && (
         <PreviewBody
           key={`${props.target.slug}/${props.target.variantId ?? ''}`}

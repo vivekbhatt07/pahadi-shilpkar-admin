@@ -18,6 +18,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { Ban, GripVertical, Plus, Trash2 } from 'lucide-react';
 import {
   Controller,
+  get,
   useFieldArray,
   useFormContext,
   useFormState,
@@ -38,6 +39,11 @@ import {
 import type { TProductFormData } from '../types';
 
 const { COLORS } = PRODUCT_FORM_FIELD_NAMES;
+
+/** The product's own colours, or one variant's. */
+export type TColorsPath =
+  | typeof COLORS
+  | `${typeof PRODUCT_FORM_FIELD_NAMES.VARIANTS}.${number}.colors`;
 
 type TSwatchPickerProps = {
   value: string | null;
@@ -116,6 +122,7 @@ const SwatchPicker = ({
 };
 
 type TColorRowProps = {
+  name: TColorsPath;
   id: string;
   index: number;
   canReorder: boolean;
@@ -124,6 +131,7 @@ type TColorRowProps = {
 };
 
 const ColorRow = ({
+  name,
   id,
   index,
   canReorder,
@@ -131,11 +139,13 @@ const ColorRow = ({
   onRemove,
 }: TColorRowProps) => {
   const { control, register } = useFormContext<TProductFormData>();
-  const colorName = useWatch({ control, name: `${COLORS}.${index}.name` });
+  const colorName = useWatch({ control, name: `${name}.${index}.name` });
   // useFormState (not formState from context) so the React Compiler sees
   // fresh errors after a submit.
-  const errors = useFormState({ control, name: `${COLORS}.${index}` }).errors
-    .colors?.[index];
+  const errors = get(
+    useFormState({ control, name: `${name}.${index}` }).errors,
+    `${name}.${index}`,
+  );
   const nameError = errors?.name?.message;
   const rowError = nameError ?? errors?.hex?.message;
   const {
@@ -171,7 +181,7 @@ const ColorRow = ({
 
         <Controller
           control={control}
-          name={`${COLORS}.${index}.hex`}
+          name={`${name}.${index}.hex`}
           render={({ field }) => (
             <SwatchPicker
               value={field.value}
@@ -188,7 +198,7 @@ const ColorRow = ({
           disabled={disabled}
           aria-invalid={Boolean(nameError)}
           aria-label={`Colour ${index + 1} name`}
-          {...register(`${COLORS}.${index}.name`)}
+          {...register(`${name}.${index}.name`)}
         />
 
         <SimpleTooltip label="Remove">
@@ -214,20 +224,17 @@ const ColorRow = ({
   );
 };
 
-type TColorsFieldProps = { disabled?: boolean };
+type TColorsFieldProps = { name?: TColorsPath; disabled?: boolean };
 
 /**
  * The colours the piece is made in, shown to shoppers as swatches in this
  * order. Drag a row by its handle, or focus the handle and use Space + arrow
  * keys. The whole list is sent whenever it changes.
  */
-const ColorsField = ({ disabled }: TColorsFieldProps) => {
+const ColorsField = ({ name = COLORS, disabled }: TColorsFieldProps) => {
   const { control } = useFormContext<TProductFormData>();
-  const { fields, append, remove, move } = useFieldArray({
-    control,
-    name: COLORS,
-  });
-  const errors = useFormState({ control, name: COLORS }).errors.colors;
+  const { fields, append, remove, move } = useFieldArray({ control, name });
+  const errors = get(useFormState({ control, name }).errors, name);
   const rootError = errors?.root?.message ?? errors?.message;
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -264,6 +271,7 @@ const ColorsField = ({ disabled }: TColorsFieldProps) => {
               {fields.map((field, index) => (
                 <ColorRow
                   key={field.id}
+                  name={name}
                   id={field.id}
                   index={index}
                   canReorder={fields.length > 1}
@@ -290,7 +298,7 @@ const ColorsField = ({ disabled }: TColorsFieldProps) => {
           onClick={() =>
             append(
               { name: '', hex: null },
-              { focusName: `${COLORS}.${fields.length}.name` },
+              { focusName: `${name}.${fields.length}.name` },
             )
           }
           disabled={disabled}

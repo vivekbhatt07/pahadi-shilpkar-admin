@@ -113,11 +113,21 @@ const InquiryDetails = ({
                     className="flex items-center gap-2.5 font-medium text-stone-900 transition-colors hover:text-accent-600 dark:text-stone-50 dark:hover:text-accent-400"
                   >
                     <ImageThumb
-                      src={inquiry.product.images[0]}
+                      src={
+                        inquiry.variant?.images[0] ?? inquiry.product.images[0]
+                      }
                       alt=""
                       className="size-8"
                     />
-                    <span className="truncate">{inquiry.product.name}</span>
+                    <span className="truncate">
+                      {inquiry.product.name}
+                      {inquiry.variant && (
+                        <span className="font-normal text-stone-500 dark:text-stone-400">
+                          {' '}
+                          — {inquiry.variant.title}
+                        </span>
+                      )}
+                    </span>
                   </RouterLink>
                 </dd>
               </div>
