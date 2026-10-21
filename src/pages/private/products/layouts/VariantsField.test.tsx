@@ -8,7 +8,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 
 import { EMPTY_MEASUREMENTS } from '../helpers';
 import type { TProductFormData, TVariantFormValue } from '../types';
-import { variantRowTitle, type TComboUsage } from '../variants';
+import { NO_OWN_DETAILS, variantRowTitle, type TComboUsage } from '../variants';
 import VariantsField from './VariantsField';
 
 const variant = (values: string[], price = 499): TVariantFormValue => ({
@@ -24,6 +24,7 @@ const variant = (values: string[], price = 499): TVariantFormValue => ({
   weight: '',
   description: '',
   purchaseLinks: [],
+  ...NO_OWN_DETAILS,
   isActive: true,
 });
 
@@ -109,7 +110,7 @@ describe('VariantsField', () => {
 
     await user.click(screen.getByRole('button', { name: /Edit all/ }));
     await user.click(
-      await screen.findByRole('menuitem', { name: 'Set price…' }),
+      await screen.findByRole('menuitem', { name: 'Change prices…' }),
     );
     const dialog = await screen.findByRole('dialog');
     await user.click(
@@ -124,6 +125,46 @@ describe('VariantsField', () => {
     );
 
     expect(rows().map((row) => row.price)).toEqual([550, 799, 799]);
+  });
+
+  it('raises every price by a percentage, rounded to the rupee', async () => {
+    const { user, rows } = renderField();
+
+    await user.click(screen.getByRole('button', { name: /Edit all/ }));
+    await user.click(
+      await screen.findByRole('menuitem', { name: 'Change prices…' }),
+    );
+    const dialog = await screen.findByRole('dialog');
+    await user.click(
+      within(dialog).getByRole('combobox', { name: 'How to change it' }),
+    );
+    await user.click(await screen.findByRole('option', { name: 'Raise by %' }));
+    await user.type(within(dialog).getByRole('spinbutton'), '10');
+
+    expect(
+      within(dialog).getByText(/Peacock \/ Small: ₹499(\.00)? → ₹549/),
+    ).toBeInTheDocument();
+    await user.click(
+      within(dialog).getByRole('button', { name: 'Apply to 3 variants' }),
+    );
+
+    expect(rows().map((row) => row.price)).toEqual([549, 879, 879]);
+  });
+
+  it('adds a delivery to each variant’s stock', async () => {
+    const { user, rows } = renderField();
+
+    await user.click(screen.getByRole('button', { name: /Edit all/ }));
+    await user.click(
+      await screen.findByRole('menuitem', { name: 'Change stock…' }),
+    );
+    const dialog = await screen.findByRole('dialog');
+    await user.type(within(dialog).getByRole('spinbutton'), '5');
+    await user.click(
+      within(dialog).getByRole('button', { name: 'Apply to 3 variants' }),
+    );
+
+    expect(rows().map((row) => row.stock)).toEqual([6, 6, 6]);
   });
 
   it('generates SKUs from the product’s own', async () => {

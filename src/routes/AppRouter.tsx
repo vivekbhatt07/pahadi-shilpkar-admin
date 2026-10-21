@@ -14,6 +14,10 @@ import {
   CategoriesPage,
   ComboDetailPage,
   CombosPage,
+  ComboCostingPage,
+  CostedListingsPage,
+  CostingOverviewPage,
+  CostingSettingsPage,
   CreateComboPage,
   CreateProductPage,
   CustomersPage,
@@ -22,10 +26,14 @@ import {
   EditProductPage,
   ForgotPasswordPage,
   InquiriesPage,
+  MaterialDetailPage,
+  MaterialsPage,
   ProcessPage,
+  ProductCostingPage,
   ProductDetailPage,
   ProductsPage,
   ProfilePage,
+  SalesPage,
   SecurityPage,
   SettingsLayout,
   StoreSettingsPage,
@@ -110,6 +118,31 @@ export const AppRouter = () => {
           />
           <Route path={ROUTES.PRIVATE.CUSTOMERS} element={<CustomersPage />} />
           <Route
+            path={ROUTES.PRIVATE.COSTING.ROOT}
+            element={<CostingOverviewPage />}
+          />
+          <Route
+            path={ROUTES.PRIVATE.COSTING.LISTINGS}
+            element={<CostedListingsPage />}
+          />
+          <Route
+            path={ROUTES.PRIVATE.COSTING.PRODUCT(':productId')}
+            element={<ProductCostingPage />}
+          />
+          <Route
+            path={ROUTES.PRIVATE.COSTING.COMBO(':comboId')}
+            element={<ComboCostingPage />}
+          />
+          <Route
+            path={ROUTES.PRIVATE.COSTING.MATERIALS}
+            element={<MaterialsPage />}
+          />
+          <Route
+            path={ROUTES.PRIVATE.COSTING.MATERIAL(':id')}
+            element={<MaterialDetailPage />}
+          />
+          <Route path={ROUTES.PRIVATE.COSTING.SALES} element={<SalesPage />} />
+          <Route
             path={ROUTES.PRIVATE.SETTINGS.ROOT}
             element={<SettingsLayout />}
           >
@@ -122,6 +155,7 @@ export const AppRouter = () => {
             <Route path="profile" element={<ProfilePage />} />
             <Route path="security" element={<SecurityPage />} />
             <Route path="store" element={<StoreSettingsPage />} />
+            <Route path="costing" element={<CostingSettingsPage />} />
             <Route path="appearance" element={<AppearancePage />} />
           </Route>
         </Route>

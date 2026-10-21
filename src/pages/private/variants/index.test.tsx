@@ -9,6 +9,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import type { InventoryPage, InventoryVariant } from '@/types/api';
 
 import VariantsPage from '.';
+import { NO_VARIANT_DETAILS } from '@/test/fixtures';
 
 const row = (
   id: string,
@@ -33,6 +34,7 @@ const row = (
   isActive: true,
   sortOrder: 0,
   whatsappUrl: null,
+  ...NO_VARIANT_DETAILS,
   product: {
     id: 'p1',
     name: 'Karwa Chauth Thali',

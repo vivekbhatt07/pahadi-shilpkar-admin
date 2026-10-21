@@ -53,7 +53,8 @@ const InquiriesTable = ({
           const isNew = inquiry.status === 'NEW';
           const badge = INQUIRY_STATUS_BADGES[inquiry.status];
           const details = [
-            inquiry.product && `About ${inquiry.product.name}`,
+            inquiry.product &&
+              `About ${inquiry.product.name}${inquiry.variant ? ` — ${inquiry.variant.title}` : ''}`,
             inquiry.quantity !== null &&
               `${inquiry.quantity.toLocaleString('en-IN')} pieces`,
           ]
@@ -141,6 +142,7 @@ const InquiriesTable = ({
                       >
                         {inquiry.product.name}
                       </RouterLink>
+                      {inquiry.variant && ` — ${inquiry.variant.title}`}
                     </>
                   )}
                   {inquiry.product && inquiry.quantity !== null && ' · '}

@@ -7,7 +7,6 @@ import type {
 import {
   AVAILABILITY_OPTIONS,
   DEFAULT_MEASUREMENT_UNIT,
-  LOW_STOCK_THRESHOLD,
   SHAPE_OPTIONS,
   SHAPE_SIZES,
   SIZE_LABELS,
@@ -30,18 +29,25 @@ export const availabilityVariant = (availability: ProductAvailability) =>
 
 /**
  * A stock count worth a second look: shown to shoppers as in stock with
- * none left, or with only a few. Made-to-order, sold-out and coming-soon
- * pieces aren't sold from stock, so their count is never flagged.
+ * none left, or with only a few — at or below its own low-stock level, or
+ * the store's, as the API judges it (`isLowStock`). Made-to-order, sold-out
+ * and coming-soon pieces aren't sold from stock, so their count is never
+ * flagged.
  */
-export const stockFlag = (
-  availability: ProductAvailability,
-  stock: number,
-): 'empty' | 'low' | null =>
+export const stockFlag = ({
+  availability,
+  stock,
+  isLowStock,
+}: {
+  availability: ProductAvailability;
+  stock: number;
+  isLowStock: boolean;
+}): 'empty' | 'low' | null =>
   availability !== 'IN_STOCK'
     ? null
     : stock === 0
       ? 'empty'
-      : stock <= LOW_STOCK_THRESHOLD
+      : isLowStock
         ? 'low'
         : null;
 
@@ -117,4 +123,12 @@ export const describeMeasurements = (
       : sizes;
 
   return measurements.note ? `${line}\n${measurements.note}` : line;
+};
+
+/** "Ready in 10–15 days" — how the storefront words a making time. */
+export const describeLeadTime = (min: number | null, max: number | null) => {
+  if (min === null) return null;
+  const range = max !== null && max > min;
+  const days = range ? `${min}–${max}` : `${min}`;
+  return `Ready in ${days} ${!range && min === 1 ? 'day' : 'days'}`;
 };

@@ -5,6 +5,7 @@ import {
   CheckCheck,
   Contact,
   MessageCircle,
+  PackageCheck,
   Share2,
   Truck,
 } from 'lucide-react';
@@ -21,6 +22,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { applyApiFieldErrors, pickChangedFields } from '@/helpers/form';
 import { formatPrice } from '@/helpers/format';
@@ -28,6 +30,10 @@ import { useSettings, useUpdateSettings } from '@/hooks/settings';
 import { useUnsavedChangesWarning } from '@/hooks/useUnsavedChangesWarning';
 import type { StoreSettings, UpdateSettingsPayload } from '@/types/api';
 
+import {
+  DEFAULT_LOW_STOCK_THRESHOLD,
+  PRODUCT_LIMITS,
+} from '../../products/constants';
 import DeliveryChargeField from '../../products/layouts/DeliveryChargeField';
 import SettingsSection from '../components/SettingsSection';
 import {
@@ -46,6 +52,8 @@ const {
   INSTAGRAM_URL,
   FACEBOOK_URL,
   YOUTUBE_URL,
+  LOW_STOCK_THRESHOLD,
+  SHOW_STOCK_LEFT,
 } = STORE_SETTINGS_FORM_FIELD_NAMES;
 
 const toFormData = (
@@ -60,6 +68,8 @@ const toFormData = (
   instagramUrl: settings?.instagramUrl ?? '',
   facebookUrl: settings?.facebookUrl ?? '',
   youtubeUrl: settings?.youtubeUrl ?? '',
+  lowStockThreshold: settings?.lowStockThreshold ?? DEFAULT_LOW_STOCK_THRESHOLD,
+  showStockLeft: settings?.showStockLeft ?? true,
 });
 
 const renderPreview = (template: string) => {
@@ -125,6 +135,12 @@ const StoreSettingsPage = () => {
       }),
       ...(changed.youtubeUrl !== undefined && {
         youtubeUrl: changed.youtubeUrl || null,
+      }),
+      ...(changed.lowStockThreshold !== undefined && {
+        lowStockThreshold: changed.lowStockThreshold,
+      }),
+      ...(changed.showStockLeft !== undefined && {
+        showStockLeft: changed.showStockLeft,
       }),
     };
 
@@ -232,6 +248,74 @@ const StoreSettingsPage = () => {
             <DeliveryChargeField
               scope="store"
               disabled={updateSettings.isPending}
+            />
+          </SettingsSection>
+
+          <SettingsSection
+            icon={<PackageCheck />}
+            title="Low stock"
+            description="When a product or variant counts as running low — unless it sets its own level."
+          >
+            <FormField
+              control={form.control}
+              name={LOW_STOCK_THRESHOLD}
+              render={({ field }) => (
+                <FormItem className="sm:max-w-56">
+                  <FormLabel>Low stock at</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      inputMode="numeric"
+                      min={0}
+                      max={PRODUCT_LIMITS.LOW_STOCK_THRESHOLD_MAX}
+                      step={1}
+                      disabled={updateSettings.isPending}
+                      name={field.name}
+                      ref={field.ref}
+                      onBlur={field.onBlur}
+                      value={Number.isNaN(field.value) ? '' : field.value}
+                      onChange={(event) =>
+                        field.onChange(
+                          event.target.value === ''
+                            ? Number.NaN
+                            : event.target.valueAsNumber,
+                        )
+                      }
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    In stock with this many left, or fewer — flagged on the
+                    Variants page.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name={SHOW_STOCK_LEFT}
+              render={({ field }) => (
+                <FormItem>
+                  <label className="flex cursor-pointer items-center justify-between gap-4 rounded-lg border border-stone-200 px-3 py-2.5 dark:border-stone-800">
+                    <span className="flex flex-col gap-0.5">
+                      <span className="text-sm font-medium text-stone-800 dark:text-stone-200">
+                        Show “Only 3 left” to shoppers
+                      </span>
+                      <span className="text-xs text-stone-400 dark:text-stone-500">
+                        Off keeps how many you have to yourself — low stock is
+                        still flagged here.
+                      </span>
+                    </span>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        disabled={updateSettings.isPending}
+                      />
+                    </FormControl>
+                  </label>
+                </FormItem>
+              )}
             />
           </SettingsSection>
 

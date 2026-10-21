@@ -20,7 +20,6 @@ import { formatDate, formatPrice } from '@/helpers/format';
 import { cn } from '@/lib/utils';
 import type { Product } from '@/types/api';
 
-import { LOW_STOCK_THRESHOLD } from '../constants';
 import { AVAILABILITY_LABELS, availabilityVariant } from '../helpers';
 
 type TProductsTableProps = {
@@ -205,7 +204,7 @@ const ProductsTable = ({
               <TableCell className="hidden text-right tabular-nums sm:table-cell">
                 {product.stock === 0 ? (
                   <Badge variant="destructive">0</Badge>
-                ) : product.stock <= LOW_STOCK_THRESHOLD ? (
+                ) : product.isLowStock ? (
                   <SimpleTooltip label="Low stock">
                     <Badge variant="warning">{product.stock}</Badge>
                   </SimpleTooltip>

@@ -10,6 +10,7 @@ import {
   ImagePlus,
   Images,
   Layers,
+  ListChecks,
   ListPlus,
   Palette,
   Plus,
@@ -75,6 +76,9 @@ import {
   addCombinations,
   addOption,
   addOptionValue,
+  changePrice,
+  changeStock,
+  copyDetailsToSiblings,
   copyPhotosToSiblings,
   copySizeToSiblings,
   generateSkus,
@@ -82,6 +86,7 @@ import {
   missingCombinations,
   moveOption,
   moveOptionValue,
+  ownDetails,
   removeOption,
   removeOptionValue,
   renameOption,
@@ -95,10 +100,13 @@ import {
   variantRowTitle,
   type TComboRef,
   type TComboUsage,
+  type TPriceChange,
+  type TStockChange,
   type TVariantScope,
   type TVariantsState,
 } from '../variants';
 import OptionValuesInput from './OptionValuesInput';
+import VariantDetailsDialog from './VariantDetailsDialog';
 import VariantLinksField from './VariantLinksField';
 import VariantMeasurementsField from './VariantMeasurementsField';
 
@@ -154,6 +162,7 @@ type TVariantRowProps = {
   copyTargets: TCopyTarget[];
   disabled?: boolean;
   onPhotos: () => void;
+  onDetails: () => void;
   onRemove: () => void;
   onCopySize: (optionIndex: number) => void;
 };
@@ -165,6 +174,7 @@ const VariantRow = ({
   copyTargets,
   disabled,
   onPhotos,
+  onDetails,
   onRemove,
   onCopySize,
 }: TVariantRowProps) => {
@@ -176,6 +186,7 @@ const VariantRow = ({
     .variants?.[index];
   const title = variantRowTitle(row);
   const size = ownSize(row);
+  const own = ownDetails(row);
   const measurementErrors = errors?.measurements;
   const linkErrors = row.purchaseLinks.map(
     (_, i) =>
@@ -208,6 +219,20 @@ const VariantRow = ({
         measurementErrors?.note?.message,
         errors?.description?.message,
         errors?.purchaseLinks?.message,
+        // Its details are edited in their own dialog — named here so a
+        // problem in one isn't missed
+        ...[
+          errors?.leadTimeDays?.message,
+          errors?.leadTimeMaxDays?.message,
+          errors?.lowStockThreshold?.message,
+          errors?.deliveryFee?.message,
+          errors?.material?.message,
+          errors?.careInstructions?.message,
+          errors?.videoUrl?.message,
+          errors?.highlights?.message,
+          errors?.colors?.message,
+          errors?.specifications?.message,
+        ].map((message) => message && `Details: ${message}`),
       ].filter((message): message is string => Boolean(message)),
     ),
   ];
@@ -261,6 +286,14 @@ const VariantRow = ({
           >
             {title}
           </p>
+          {own.length > 0 && (
+            <SimpleTooltip label={`Its own: ${own.join(', ')}`}>
+              <ListChecks
+                aria-label={`Its own details: ${own.join(', ')}`}
+                className="size-3.5 shrink-0 text-stone-400"
+              />
+            </SimpleTooltip>
+          )}
           {size && (
             <SimpleTooltip label={`Own size: ${size}`}>
               <Ruler
@@ -505,6 +538,28 @@ const VariantRow = ({
             )}
           </div>
 
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-dashed border-stone-200 pt-3 dark:border-stone-800">
+            <p className="text-xs text-stone-400 dark:text-stone-500">
+              <span className="font-medium text-stone-600 dark:text-stone-300">
+                Details
+              </span>{' '}
+              —{' '}
+              {own.length > 0
+                ? `its own ${own.join(', ').toLowerCase()}; the rest as the product.`
+                : 'highlights, material, colours, care, specifications, video, delivery, making time and low-stock level, all as the product.'}
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onDetails}
+              disabled={disabled}
+            >
+              <ListChecks />
+              Edit details
+            </Button>
+          </div>
+
           <div className="flex flex-col gap-3 border-t border-dashed border-stone-200 pt-3 dark:border-stone-800">
             <Controller
               control={control}
@@ -575,32 +630,53 @@ type TBulkField =
   | 'price'
   | 'compareAtPrice'
   | 'stock'
+  | 'lowStockThreshold'
   | 'availability'
   | 'isActive';
 
-type TBulkState = { field: TBulkField; value: string; scope: string };
+/**
+ * `change` is how a figure moves — a TPriceChange for prices, a
+ * TStockChange for stock, 'set' for the rest; `round` rounds new prices to
+ * the rupee.
+ */
+type TBulkState = {
+  field: TBulkField;
+  value: string;
+  scope: string;
+  change: string;
+  round: boolean;
+};
 
 const BULK_FIELDS: Record<
   TBulkField,
   { menu: string; title: string; description: string; start: string }
 > = {
   price: {
-    menu: 'Set price…',
-    title: 'Set the price',
-    description: 'Replaces the price of each variant below.',
+    menu: 'Change prices…',
+    title: 'Change the price',
+    description:
+      'Set one price, or move each by a percentage or an amount — say when wood or paint costs more.',
     start: '',
   },
   compareAtPrice: {
-    menu: 'Set compare-at price…',
-    title: 'Set the compare-at price',
+    menu: 'Change compare-at prices…',
+    title: 'Change the compare-at price',
     description:
-      'The strike-through price — it must be above each price. Leave it empty to remove it.',
+      'The strike-through price — it must be above each price. Set it empty to remove it.',
     start: '',
   },
   stock: {
-    menu: 'Set stock…',
-    title: 'Set the stock',
-    description: 'Replaces the stock of each variant below.',
+    menu: 'Change stock…',
+    title: 'Change the stock',
+    description:
+      'Add a delivery to what each one has, or set the count after a stock-take.',
+    start: '',
+  },
+  lowStockThreshold: {
+    menu: 'Set low-stock level…',
+    title: 'Set the low-stock level',
+    description:
+      'Flagged — and shown to shoppers as “Only 3 left” — from this many down. Leave it empty to use the store’s level.',
     start: '',
   },
   availability: {
@@ -619,20 +695,83 @@ const BULK_FIELDS: Record<
   },
 };
 
+const PRICE_CHANGES: { value: TPriceChange; label: string }[] = [
+  { value: 'set', label: 'Set to' },
+  { value: 'raise_percent', label: 'Raise by %' },
+  { value: 'lower_percent', label: 'Lower by %' },
+  { value: 'raise_amount', label: 'Raise by ₹' },
+  { value: 'lower_amount', label: 'Lower by ₹' },
+];
+
+const STOCK_CHANGES: { value: TStockChange; label: string }[] = [
+  { value: 'add', label: 'Add to stock' },
+  { value: 'set', label: 'Set to' },
+];
+
+const isPriceField = (field: TBulkField) =>
+  field === 'price' || field === 'compareAtPrice';
+
 const ALL_VARIANTS = 'all';
 
-/** Why the bulk value can't be applied yet, or null. */
-const bulkProblem = ({ field, value }: TBulkState): string | null => {
+/** What a row's price (or compare-at price) becomes, or null to remove it. */
+const bulkPrice = (
+  current: number | null,
+  { change, value, round }: TBulkState,
+): number | null => {
+  if (value === '') return null;
+  if (current === null && change !== 'set') return null;
+  return changePrice(
+    current ?? 0,
+    change as TPriceChange,
+    Number(value),
+    round,
+  );
+};
+
+/**
+ * Why the bulk value can't be applied to these rows yet, or null — a price
+ * change that would take one to ₹0 or below is refused here, not on save.
+ */
+const bulkProblem = (
+  bulk: TBulkState,
+  rows: TVariantFormValue[],
+): string | null => {
+  const { field, value, change } = bulk;
   const number = Number(value);
   switch (field) {
     case 'price':
-      return value !== '' && number > 0 ? null : 'Enter a price above 0';
-    case 'compareAtPrice':
-      return value === '' || number > 0 ? null : 'Enter an amount above 0';
+    case 'compareAtPrice': {
+      if (field === 'compareAtPrice' && value === '' && change === 'set') {
+        return null;
+      }
+      if (value === '' || !(number > 0)) return 'Enter an amount above 0';
+      if (change === 'lower_percent' && number >= 100) {
+        return 'Lower by less than 100%';
+      }
+      const below = rows.filter((row) => {
+        const current = field === 'price' ? row.price : row.compareAtPrice;
+        const next = bulkPrice(Number.isNaN(current) ? null : current, bulk);
+        return next !== null && next <= 0;
+      }).length;
+      return below > 0
+        ? `That takes ${below} ${below === 1 ? 'price' : 'prices'} to ₹0 or below`
+        : null;
+    }
     case 'stock':
-      return value !== '' && Number.isInteger(number) && number >= 0
+      return value !== '' &&
+        Number.isInteger(number) &&
+        (change === 'add' ? number > 0 : number >= 0)
         ? null
-        : 'Enter a whole number, 0 or more';
+        : change === 'add'
+          ? 'Enter how many arrived — a whole number above 0'
+          : 'Enter a whole number, 0 or more';
+    case 'lowStockThreshold':
+      return value === '' ||
+        (Number.isInteger(number) &&
+          number >= 0 &&
+          number <= PRODUCT_LIMITS.LOW_STOCK_THRESHOLD_MAX)
+        ? null
+        : 'Enter a whole number from 0 to 1,000, or leave it empty';
     default:
       return value ? null : 'Pick one';
   }
@@ -640,17 +779,33 @@ const bulkProblem = ({ field, value }: TBulkState): string | null => {
 
 const applyBulkChange = (
   row: TVariantFormValue,
-  { field, value }: TBulkState,
+  bulk: TBulkState,
 ): TVariantFormValue => {
+  const { field, value, change } = bulk;
   switch (field) {
+    case 'price':
+      return {
+        ...row,
+        price:
+          bulkPrice(Number.isNaN(row.price) ? null : row.price, bulk) ??
+          row.price,
+      };
     case 'compareAtPrice':
-      return { ...row, compareAtPrice: value === '' ? null : Number(value) };
+      return { ...row, compareAtPrice: bulkPrice(row.compareAtPrice, bulk) };
+    case 'stock':
+      return {
+        ...row,
+        stock: changeStock(row.stock, change as TStockChange, Number(value)),
+      };
+    case 'lowStockThreshold':
+      return {
+        ...row,
+        lowStockThreshold: value === '' ? null : Number(value),
+      };
     case 'availability':
       return { ...row, availability: value as ProductAvailability };
     case 'isActive':
       return { ...row, isActive: value === 'on' };
-    default:
-      return { ...row, [field]: Number(value) };
   }
 };
 
@@ -682,6 +837,7 @@ const VariantsField = ({ disabled, comboUsage }: TVariantsFieldProps) => {
     name: [VARIANT_OPTIONS, VARIANTS],
   });
   const [photosIndex, setPhotosIndex] = useState<number | null>(null);
+  const [detailsIndex, setDetailsIndex] = useState<number | null>(null);
   const [bulk, setBulk] = useState<TBulkState | null>(null);
   const [skus, setSkus] = useState<{
     prefix: string;
@@ -718,14 +874,36 @@ const VariantsField = ({ disabled, comboUsage }: TVariantsFieldProps) => {
     scopeChoices.find((choice) => choice.key === key)?.scope ?? null;
 
   const openBulk = (field: TBulkField) =>
-    setBulk({ field, value: BULK_FIELDS[field].start, scope: ALL_VARIANTS });
+    setBulk({
+      field,
+      value: BULK_FIELDS[field].start,
+      scope: ALL_VARIANTS,
+      change: field === 'stock' ? 'add' : 'set',
+      round: true,
+    });
 
-  const bulkCount = bulk
-    ? rows.filter((row) => inScope(row, scopeOf(bulk.scope))).length
-    : 0;
+  const bulkRows = bulk
+    ? rows.filter((row) => inScope(row, scopeOf(bulk.scope)))
+    : [];
+  const bulkCount = bulkRows.length;
+  const bulkError = bulk ? bulkProblem(bulk, bulkRows) : null;
+  // "Peacock / Small: ₹499 → ₹549" — what the change does to one of them
+  const bulkPreview = (() => {
+    if (!bulk || bulkError || !isPriceField(bulk.field) || !bulkRows[0]) {
+      return null;
+    }
+    const sample = bulkRows[0];
+    const current =
+      bulk.field === 'price' ? sample.price : sample.compareAtPrice;
+    if (current === null || Number.isNaN(current)) return null;
+    const next = bulkPrice(current, bulk);
+    return `${variantRowTitle(sample)}: ${formatPrice(current)} → ${
+      next === null ? 'none' : formatPrice(next)
+    }`;
+  })();
 
   const applyBulk = () => {
-    if (!bulk || bulkProblem(bulk)) return;
+    if (!bulk || bulkError) return;
     const scope = scopeOf(bulk.scope);
     updateRows((row) =>
       inScope(row, scope) ? applyBulkChange(row, bulk) : row,
@@ -1077,16 +1255,21 @@ const VariantsField = ({ disabled, comboUsage }: TVariantsFieldProps) => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
-                  {(['price', 'compareAtPrice', 'stock'] as const).map(
-                    (field) => (
-                      <DropdownMenuItem
-                        key={field}
-                        onSelect={() => openBulk(field)}
-                      >
-                        {BULK_FIELDS[field].menu}
-                      </DropdownMenuItem>
-                    ),
-                  )}
+                  {(
+                    [
+                      'price',
+                      'compareAtPrice',
+                      'stock',
+                      'lowStockThreshold',
+                    ] as const
+                  ).map((field) => (
+                    <DropdownMenuItem
+                      key={field}
+                      onSelect={() => openBulk(field)}
+                    >
+                      {BULK_FIELDS[field].menu}
+                    </DropdownMenuItem>
+                  ))}
                   <DropdownMenuItem onSelect={() => openBulk('availability')}>
                     <Boxes />
                     {BULK_FIELDS.availability.menu}
@@ -1131,6 +1314,7 @@ const VariantsField = ({ disabled, comboUsage }: TVariantsFieldProps) => {
                   copyTargets={copyTargetsFor(index)}
                   disabled={disabled}
                   onPhotos={() => setPhotosIndex(index)}
+                  onDetails={() => setDetailsIndex(index)}
                   onCopySize={(optionIndex) => {
                     const target = copyTargetsFor(index).find(
                       (candidate) => candidate.optionIndex === optionIndex,
@@ -1173,7 +1357,7 @@ const VariantsField = ({ disabled, comboUsage }: TVariantsFieldProps) => {
         open={photosRow !== undefined}
         onOpenChange={(open) => !open && setPhotosIndex(null)}
       >
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="sm:max-w-2xl md:max-w-2xl">
           <DialogHeader>
             <DialogTitle>
               Photos — {photosRow ? variantRowTitle(photosRow) : ''}
@@ -1245,6 +1429,19 @@ const VariantsField = ({ disabled, comboUsage }: TVariantsFieldProps) => {
         </DialogContent>
       </Dialog>
 
+      {/* Mounted while open — it reads the store's settings for its hints */}
+      {detailsIndex !== null && (
+        <VariantDetailsDialog
+          index={detailsIndex}
+          copyTargets={copyTargetsFor(detailsIndex)}
+          onCopy={(optionIndex) =>
+            update(copyDetailsToSiblings(current(), detailsIndex, optionIndex))
+          }
+          onClose={() => setDetailsIndex(null)}
+          disabled={disabled}
+        />
+      )}
+
       <Dialog
         open={bulk !== null}
         onOpenChange={(open) => !open && setBulk(null)}
@@ -1292,16 +1489,46 @@ const VariantsField = ({ disabled, comboUsage }: TVariantsFieldProps) => {
                 </Select>
               </label>
 
+              {(isPriceField(bulk.field) || bulk.field === 'stock') && (
+                <label className={fieldLabelClass}>
+                  Change
+                  <Select
+                    value={bulk.change}
+                    onValueChange={(change) => setBulk({ ...bulk, change })}
+                  >
+                    <SelectTrigger aria-label="How to change it">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(bulk.field === 'stock'
+                        ? STOCK_CHANGES
+                        : PRICE_CHANGES
+                      ).map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </label>
+              )}
+
               <label className={fieldLabelClass}>
                 {bulk.field === 'availability'
                   ? 'Availability'
                   : bulk.field === 'isActive'
                     ? 'On the storefront'
                     : bulk.field === 'stock'
-                      ? 'Stock'
-                      : bulk.field === 'price'
-                        ? 'Price'
-                        : 'Compare-at price'}
+                      ? bulk.change === 'add'
+                        ? 'Units that arrived'
+                        : 'Stock'
+                      : bulk.field === 'lowStockThreshold'
+                        ? 'Low stock at'
+                        : bulk.change.endsWith('_percent')
+                          ? 'Percentage'
+                          : bulk.field === 'price'
+                            ? 'Price'
+                            : 'Compare-at price'}
                 {bulk.field === 'availability' ? (
                   <Select
                     value={bulk.value}
@@ -1335,14 +1562,26 @@ const VariantsField = ({ disabled, comboUsage }: TVariantsFieldProps) => {
                   <Input
                     autoFocus
                     type="number"
-                    inputMode={bulk.field === 'stock' ? 'numeric' : 'decimal'}
+                    inputMode={isPriceField(bulk.field) ? 'decimal' : 'numeric'}
                     min={0}
-                    step={bulk.field === 'stock' ? 1 : '0.01'}
+                    step={isPriceField(bulk.field) ? '0.01' : 1}
                     placeholder={
-                      bulk.field === 'compareAtPrice' ? 'Empty removes it' : ''
+                      bulk.field === 'compareAtPrice' && bulk.change === 'set'
+                        ? 'Empty removes it'
+                        : bulk.field === 'lowStockThreshold'
+                          ? 'Empty — the store’s level'
+                          : ''
                     }
                     startAdornment={
-                      bulk.field === 'stock' ? undefined : <RupeePrefix />
+                      isPriceField(bulk.field) &&
+                      !bulk.change.endsWith('_percent') ? (
+                        <RupeePrefix />
+                      ) : undefined
+                    }
+                    endAdornment={
+                      bulk.change.endsWith('_percent') ? (
+                        <span className="text-sm text-stone-400">%</span>
+                      ) : undefined
                     }
                     value={bulk.value}
                     onChange={(event) =>
@@ -1352,6 +1591,31 @@ const VariantsField = ({ disabled, comboUsage }: TVariantsFieldProps) => {
                 )}
               </label>
 
+              {isPriceField(bulk.field) && bulk.change !== 'set' && (
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-stone-700 dark:text-stone-300">
+                  <Checkbox
+                    checked={bulk.round}
+                    onCheckedChange={(checked) =>
+                      setBulk({ ...bulk, round: checked === true })
+                    }
+                  />
+                  Round to the rupee
+                </label>
+              )}
+
+              {(bulkPreview || (bulk.value !== '' && bulkError)) && (
+                <p
+                  className={cn(
+                    'text-xs',
+                    bulkError
+                      ? 'font-medium text-red-600 dark:text-red-400'
+                      : 'text-stone-500 tabular-nums dark:text-stone-400',
+                  )}
+                >
+                  {bulkError ?? `For example ${bulkPreview}`}
+                </p>
+              )}
+
               <DialogFooter>
                 <Button
                   type="button"
@@ -1360,7 +1624,7 @@ const VariantsField = ({ disabled, comboUsage }: TVariantsFieldProps) => {
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={bulkProblem(bulk) !== null}>
+                <Button type="submit" disabled={bulkError !== null}>
                   Apply to {bulkCount}{' '}
                   {bulkCount === 1 ? 'variant' : 'variants'}
                 </Button>

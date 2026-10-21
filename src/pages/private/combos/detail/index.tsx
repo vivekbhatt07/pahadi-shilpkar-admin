@@ -33,6 +33,7 @@ import {
 } from '../../products/helpers';
 import ProductGallery from '../../products/detail/layouts/ProductGallery';
 import VariantPreviewDialog from '../../products/layouts/VariantPreviewDialog';
+import { ComboCostingCard } from '../../costing/components/CostingSummaryCard';
 import ListingTestimonials from '../../testimonials/layouts/ListingTestimonials';
 import { COMBO_HIDDEN_BY_PRODUCT_WARNING } from '../constants';
 import {
@@ -339,6 +340,8 @@ const ComboDetailPage = () => {
               </ul>
             </CardContent>
           </Card>
+
+          <ComboCostingCard comboId={item.id} />
 
           <Card>
             <CardHeader>

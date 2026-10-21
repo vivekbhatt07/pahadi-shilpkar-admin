@@ -42,7 +42,7 @@ const headClass =
   'px-3 py-2 font-semibold text-[11px] tracking-wider uppercase';
 
 const Stock = ({ variant }: { variant: ProductVariant }) => {
-  const flag = stockFlag(variant.availability, variant.stock);
+  const flag = stockFlag(variant);
   if (flag === 'empty') {
     return (
       <SimpleTooltip label="Shown as in stock, but none are left">

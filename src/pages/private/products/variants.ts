@@ -47,10 +47,63 @@ const moveItem = <T>(list: T[], from: number, to: number): T[] => {
   return next;
 };
 
+/** The details a variant can have of its own — each one the product's while empty. */
+export type TVariantDetails = Pick<
+  TVariantFormValue,
+  | 'highlights'
+  | 'material'
+  | 'colors'
+  | 'careInstructions'
+  | 'specifications'
+  | 'videoUrl'
+  | 'deliveryCharge'
+  | 'deliveryFee'
+  | 'leadTimeDays'
+  | 'leadTimeMaxDays'
+  | 'lowStockThreshold'
+>;
+
+/** None of its own — shown as the product has them. */
+export const NO_OWN_DETAILS: TVariantDetails = {
+  highlights: [],
+  material: '',
+  colors: [],
+  careInstructions: '',
+  specifications: [],
+  videoUrl: '',
+  deliveryCharge: null,
+  deliveryFee: null,
+  leadTimeDays: null,
+  leadTimeMaxDays: null,
+  lowStockThreshold: null,
+};
+
+/**
+ * The details a row has of its own, by name — "Material", "2 highlights" —
+ * for the row's summary. Empty when it shows the product's on every one.
+ */
+export const ownDetails = (row: TVariantFormValue): string[] => {
+  const count = (n: number, one: string, many: string) =>
+    `${n} ${n === 1 ? one : many}`;
+  return [
+    row.highlights.length > 0 &&
+      count(row.highlights.length, 'highlight', 'highlights'),
+    row.material.trim() && 'Material',
+    row.colors.length > 0 && count(row.colors.length, 'colour', 'colours'),
+    row.careInstructions.trim() && 'Care',
+    row.specifications.length > 0 &&
+      count(row.specifications.length, 'specification', 'specifications'),
+    row.videoUrl.trim() && 'Video',
+    row.deliveryCharge && 'Delivery',
+    row.leadTimeDays !== null && 'Making time',
+    row.lowStockThreshold !== null && 'Low-stock level',
+  ].filter((detail): detail is string => Boolean(detail));
+};
+
 /**
  * A row for a new combination. It starts with the price and availability of
  * `like` — an existing variant — so a new design isn't blank; never its SKU,
- * stock, photos or size, which belong to one variant only.
+ * stock, photos, size or details, which belong to one variant only.
  */
 const newRow = (
   values: string[],
@@ -68,6 +121,7 @@ const newRow = (
   weight: '',
   description: '',
   purchaseLinks: [],
+  ...NO_OWN_DETAILS,
   isActive: true,
 });
 
@@ -399,6 +453,39 @@ export const copySizeToSiblings = (
   };
 };
 
+/**
+ * Gives the row's own details — highlights, material, colours, care,
+ * specifications, video, delivery, making time, low-stock level — to every
+ * variant that shares its value of an option: "every Brass one is the same".
+ */
+export const copyDetailsToSiblings = (
+  state: TVariantsState,
+  rowIndex: number,
+  optionIndex: number,
+): TVariantsState => {
+  const siblings = new Set(siblingIndexes(state.rows, rowIndex, optionIndex));
+  const source = state.rows[rowIndex];
+  const details: TVariantDetails = {
+    highlights: [...source.highlights],
+    material: source.material,
+    colors: source.colors.map((color) => ({ ...color })),
+    careInstructions: source.careInstructions,
+    specifications: source.specifications.map((spec) => ({ ...spec })),
+    videoUrl: source.videoUrl,
+    deliveryCharge: source.deliveryCharge,
+    deliveryFee: source.deliveryFee,
+    leadTimeDays: source.leadTimeDays,
+    leadTimeMaxDays: source.leadTimeMaxDays,
+    lowStockThreshold: source.lowStockThreshold,
+  };
+  return {
+    ...state,
+    rows: state.rows.map((row, i) =>
+      siblings.has(i) ? { ...row, ...details } : row,
+    ),
+  };
+};
+
 /** "Peacock blue" → "PEACOCK-BLUE": letters and digits, joined by hyphens. */
 const skuPart = (text: string) =>
   text
@@ -480,6 +567,18 @@ export const toVariantsFormValue = (
       ...link,
       label: link.label ?? '',
     })),
+    // A backend from before variant details leaves these out
+    highlights: [...(variant.highlights ?? [])],
+    material: variant.material ?? '',
+    colors: (variant.colors ?? []).map((color) => ({ ...color })),
+    careInstructions: variant.careInstructions ?? '',
+    specifications: (variant.specifications ?? []).map((spec) => ({ ...spec })),
+    videoUrl: variant.videoUrl ?? '',
+    deliveryCharge: variant.deliveryCharge ?? null,
+    deliveryFee: variant.deliveryFee ?? null,
+    leadTimeDays: variant.leadTimeDays ?? null,
+    leadTimeMaxDays: variant.leadTimeMaxDays ?? null,
+    lowStockThreshold: variant.lowStockThreshold ?? null,
     isActive: variant.isActive,
   })),
 });
@@ -524,6 +623,18 @@ export const toVariantsPayload = ({
       ...link,
       label: link.label.trim() || null,
     })),
+    highlights: row.highlights,
+    material: row.material.trim() || null,
+    colors: row.colors,
+    careInstructions: row.careInstructions.trim() || null,
+    specifications: row.specifications,
+    videoUrl: row.videoUrl.trim() || null,
+    deliveryCharge: row.deliveryCharge,
+    // A fee only goes with EXTRA; the editor clears it otherwise
+    deliveryFee: row.deliveryCharge === 'EXTRA' ? row.deliveryFee : null,
+    leadTimeDays: row.leadTimeDays,
+    leadTimeMaxDays: row.leadTimeMaxDays,
+    lowStockThreshold: row.lowStockThreshold,
     isActive: row.isActive,
   })),
 });
@@ -595,3 +706,40 @@ export const summarizeVariantRows = (rows: TVariantFormValue[]) => {
       ) ?? ('OUT_OF_STOCK' as ProductAvailability),
   };
 };
+
+/**
+ * How "Edit all" changes prices — to one figure, or each by a percentage or
+ * an amount: "raise every Large one by 10%".
+ */
+export type TPriceChange =
+  | 'set'
+  | 'raise_percent'
+  | 'lower_percent'
+  | 'raise_amount'
+  | 'lower_amount';
+
+/**
+ * A price after a bulk change, to the paisa — or to the rupee when asked,
+ * as handmade prices usually are.
+ */
+export const changePrice = (
+  price: number,
+  change: TPriceChange,
+  by: number,
+  roundToRupee: boolean,
+): number => {
+  const next = {
+    set: by,
+    raise_percent: price * (1 + by / 100),
+    lower_percent: price * (1 - by / 100),
+    raise_amount: price + by,
+    lower_amount: price - by,
+  }[change];
+  return roundToRupee ? Math.round(next) : Math.round(next * 100) / 100;
+};
+
+/** How "Edit all" changes stock — to one figure, or by adding a delivery. */
+export type TStockChange = 'set' | 'add';
+
+export const changeStock = (stock: number, change: TStockChange, by: number) =>
+  change === 'set' ? by : (Number.isNaN(stock) ? 0 : stock) + by;

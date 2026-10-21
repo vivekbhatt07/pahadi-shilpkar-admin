@@ -9,6 +9,10 @@ export const STORE_SETTINGS_FORM_FIELD_NAMES = {
   INSTAGRAM_URL: 'instagramUrl',
   FACEBOOK_URL: 'facebookUrl',
   YOUTUBE_URL: 'youtubeUrl',
+  /** In stock with this many left, or fewer, is low. */
+  LOW_STOCK_THRESHOLD: 'lowStockThreshold',
+  /** "Only 3 left" on the storefront while stock is low. */
+  SHOW_STOCK_LEFT: 'showStockLeft',
 } as const;
 
 export const STORE_SETTINGS_LIMITS = {

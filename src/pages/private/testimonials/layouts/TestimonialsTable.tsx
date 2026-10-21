@@ -78,6 +78,14 @@ export const TestimonialBody = ({
   clamp?: boolean;
 }) => (
   <div className="flex min-w-0 flex-col gap-2">
+    {testimonial.variant && (
+      <p className="text-xs text-stone-500 dark:text-stone-400">
+        Bought:{' '}
+        <span className="font-medium text-stone-700 dark:text-stone-300">
+          {testimonial.variant.title}
+        </span>
+      </p>
+    )}
     <p
       className={cn(
         'max-w-xl text-sm leading-relaxed whitespace-pre-line text-stone-700 dark:text-stone-300',

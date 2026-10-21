@@ -27,7 +27,7 @@ import type {
   UpdateVariantPayload,
 } from '@/types/api';
 
-import { AVAILABILITY_OPTIONS } from '../../constants';
+import { AVAILABILITY_OPTIONS, PRODUCT_LIMITS } from '../../constants';
 
 type TQuickEditDialogProps = {
   productId: string;
@@ -42,6 +42,10 @@ type TDraft = {
   price: string;
   compareAtPrice: string;
   stock: string;
+  /** Units that just arrived — added to the stock as it is when saved. */
+  arrived: string;
+  /** '' = the store's level. */
+  lowStockThreshold: string;
   availability: ProductAvailability;
   isActive: boolean;
 };
@@ -61,6 +65,9 @@ const toDraft = (variant: ProductVariant): TDraft => ({
   compareAtPrice:
     variant.compareAtPrice === null ? '' : String(variant.compareAtPrice),
   stock: String(variant.stock),
+  arrived: '',
+  lowStockThreshold:
+    variant.lowStockThreshold === null ? '' : String(variant.lowStockThreshold),
   availability: variant.availability,
   isActive: variant.isActive,
 });
@@ -79,23 +86,54 @@ const problemWith = (draft: TDraft): string | null => {
   if (draft.stock === '' || !Number.isInteger(stock) || stock < 0) {
     return 'Stock must be a whole number, 0 or more';
   }
+  if (draft.arrived !== '') {
+    const arrived = Number(draft.arrived);
+    if (
+      !Number.isInteger(arrived) ||
+      arrived < 1 ||
+      arrived > PRODUCT_LIMITS.RESTOCK_MAX
+    ) {
+      return 'Units that arrived must be a whole number above 0';
+    }
+  }
+  if (draft.lowStockThreshold !== '') {
+    const threshold = Number(draft.lowStockThreshold);
+    if (
+      !Number.isInteger(threshold) ||
+      threshold < 0 ||
+      threshold > PRODUCT_LIMITS.LOW_STOCK_THRESHOLD_MAX
+    ) {
+      return 'Low stock at must be a whole number from 0 to 1,000 — or empty';
+    }
+  }
   return null;
 };
 
-/** Only what changed — an untouched field keeps its stored value. */
+/**
+ * Only what changed — an untouched field keeps its stored value. Units that
+ * arrived are added on the server, to whatever the stock is by then, so a
+ * sale recorded meanwhile isn't written over.
+ */
 const toPayload = (
   variant: ProductVariant,
   draft: TDraft,
 ): UpdateVariantPayload => {
   const compareAtPrice =
     draft.compareAtPrice === '' ? null : Number(draft.compareAtPrice);
+  const lowStockThreshold =
+    draft.lowStockThreshold === '' ? null : Number(draft.lowStockThreshold);
   return {
     ...(Number(draft.price) !== variant.price && {
       price: Number(draft.price),
     }),
     ...(compareAtPrice !== variant.compareAtPrice && { compareAtPrice }),
-    ...(Number(draft.stock) !== variant.stock && {
-      stock: Number(draft.stock),
+    ...(draft.arrived !== ''
+      ? { addStock: Number(draft.arrived) }
+      : Number(draft.stock) !== variant.stock && {
+          stock: Number(draft.stock),
+        }),
+    ...(lowStockThreshold !== variant.lowStockThreshold && {
+      lowStockThreshold,
     }),
     ...(draft.availability !== variant.availability && {
       availability: draft.availability,
@@ -167,13 +205,31 @@ const QuickEditForm = ({
         <label className={labelClass}>
           Stock
           <Input
-            autoFocus
             type="number"
             inputMode="numeric"
             min={0}
             step={1}
             value={draft.stock}
             onChange={(event) => set({ stock: event.target.value })}
+            disabled={updateVariant.isPending || draft.arrived !== ''}
+          />
+        </label>
+        <label className={labelClass}>
+          Arrived
+          <Input
+            autoFocus
+            type="number"
+            inputMode="numeric"
+            min={1}
+            step={1}
+            placeholder="Add to stock"
+            startAdornment={
+              <span className="text-sm text-stone-400 dark:text-stone-500">
+                +
+              </span>
+            }
+            value={draft.arrived}
+            onChange={(event) => set({ arrived: event.target.value })}
             disabled={updateVariant.isPending}
           />
         </label>
@@ -198,7 +254,28 @@ const QuickEditForm = ({
             </SelectContent>
           </Select>
         </label>
+        <label className={labelClass}>
+          Low stock at
+          <Input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            step={1}
+            placeholder="Store's level"
+            value={draft.lowStockThreshold}
+            onChange={(event) => set({ lowStockThreshold: event.target.value })}
+            disabled={updateVariant.isPending}
+          />
+        </label>
       </div>
+
+      {draft.arrived !== '' && !problem && (
+        <p className="-mt-1 text-xs text-stone-500 tabular-nums dark:text-stone-400">
+          Stock goes from {variant.stock} to{' '}
+          {variant.stock + Number(draft.arrived)} — plus or minus anything sold
+          meanwhile.
+        </p>
+      )}
 
       <label className="flex cursor-pointer items-center justify-between gap-4 rounded-lg border border-stone-200 px-3 py-2.5 dark:border-stone-800">
         <span className="flex flex-col gap-0.5">

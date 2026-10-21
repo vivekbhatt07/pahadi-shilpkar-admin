@@ -36,6 +36,18 @@ const toQuery = (params: ProductListParams) => {
   return query;
 };
 
+const toVariantQuery = (params: VariantListParams) => {
+  const query: Record<string, string> = {};
+  if (params.search) query.search = params.search;
+  if (params.availability) query.availability = params.availability;
+  if (params.lowStock !== undefined) query.lowStock = String(params.lowStock);
+  if (params.isActive !== undefined) query.isActive = String(params.isActive);
+  if (params.sort) query.sort = params.sort;
+  if (params.page) query.page = String(params.page);
+  if (params.limit) query.limit = String(params.limit);
+  return query;
+};
+
 export const productsService = {
   /** Newest first by default. Without includeInactive only active products are returned. */
   list: async (params: ProductListParams = {}) => {
@@ -72,19 +84,21 @@ export const productsService = {
    * its product, waiting shoppers and combo count, plus counts for filters.
    */
   listVariants: async (params: VariantListParams = {}) => {
-    const query: Record<string, string> = {};
-    if (params.search) query.search = params.search;
-    if (params.availability) query.availability = params.availability;
-    if (params.lowStock !== undefined) query.lowStock = String(params.lowStock);
-    if (params.isActive !== undefined) query.isActive = String(params.isActive);
-    if (params.sort) query.sort = params.sort;
-    if (params.page) query.page = String(params.page);
-    if (params.limit) query.limit = String(params.limit);
     const { data } = await api.get<ApiResponse<InventoryPage>>('/variants', {
-      params: query,
+      params: toVariantQuery(params),
     });
     return data;
   },
+
+  /**
+   * The same list as a CSV stock-take sheet — every row the filters match,
+   * in the list's order. The whole response, for its file name.
+   */
+  exportVariants: (params: Omit<VariantListParams, 'page' | 'limit'> = {}) =>
+    api.get<Blob>('/variants/export', {
+      params: toVariantQuery(params),
+      responseType: 'blob',
+    }),
 
   /**
    * One variant's price, compare-at price, stock, availability or on/off,

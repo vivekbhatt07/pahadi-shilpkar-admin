@@ -46,6 +46,9 @@ const DEFAULT_VALUES: TProductFormData = {
   categoryId: '',
   variantOptions: [],
   variants: [],
+  leadTimeDays: null,
+  leadTimeMaxDays: null,
+  lowStockThreshold: null,
 };
 
 const CreateProductPage = () => {
@@ -76,7 +79,14 @@ const CreateProductPage = () => {
               }),
               stock: data.stock,
               availability: data.availability,
+              ...(data.lowStockThreshold !== null && {
+                lowStockThreshold: data.lowStockThreshold,
+              }),
             }),
+        ...(data.leadTimeDays !== null && {
+          leadTimeDays: data.leadTimeDays,
+          leadTimeMaxDays: data.leadTimeMaxDays,
+        }),
         ...(data.slug && { slug: data.slug }),
         ...(data.sku && { sku: data.sku }),
         ...(data.shortDescription && {

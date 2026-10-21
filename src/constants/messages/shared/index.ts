@@ -103,6 +103,10 @@ export const VALIDATION_MESSAGES = {
       'A variant’s description must be 300 characters or fewer',
     VARIANT_SWATCHES_INCOMPLETE:
       'Pick a colour for every value — or turn swatches off',
+    LEAD_TIME_INVALID: 'Enter a whole number of days from 1 to 365',
+    LEAD_TIME_ORDER:
+      'The longest time needs a shortest one, and can’t be below it',
+    LOW_STOCK_THRESHOLD_INVALID: 'Enter a whole number from 0 to 1,000',
   },
   COMBO: {
     NAME_REQUIRED: 'Combo name is required',

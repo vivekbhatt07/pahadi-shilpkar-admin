@@ -6,12 +6,17 @@ import {
   addCombinations,
   addOption,
   addOptionValue,
+  changePrice,
+  changeStock,
+  copyDetailsToSiblings,
   copyPhotosToSiblings,
   copySizeToSiblings,
   generateSkus,
   inScope,
   missingCombinations,
   moveOption,
+  NO_OWN_DETAILS,
+  ownDetails,
   moveOptionValue,
   removeOption,
   removeOptionValue,
@@ -27,6 +32,7 @@ import {
   variantRowTitle,
   type TVariantsState,
 } from './variants';
+import { NO_VARIANT_DETAILS } from '@/test/fixtures';
 
 const EMPTY: TVariantsState = { options: [], rows: [] };
 
@@ -64,6 +70,7 @@ const row = (overrides: Partial<TVariantFormValue>): TVariantFormValue => ({
   weight: '',
   description: '',
   purchaseLinks: [],
+  ...NO_OWN_DETAILS,
   isActive: true,
   ...overrides,
 });
@@ -375,6 +382,7 @@ describe('toVariantsFormValue / toVariantsPayload', () => {
         isActive: true,
         sortOrder: 0,
         whatsappUrl: null,
+        ...NO_VARIANT_DETAILS,
       },
     ],
   };
@@ -414,6 +422,18 @@ describe('toVariantsFormValue / toVariantsPayload', () => {
           purchaseLinks: [
             { platform: 'AMAZON', label: null, url: 'https://amazon.in/lotus' },
           ],
+          // None of its own details — each one the product's
+          highlights: [],
+          material: null,
+          colors: [],
+          careInstructions: null,
+          specifications: [],
+          videoUrl: null,
+          deliveryCharge: null,
+          deliveryFee: null,
+          leadTimeDays: null,
+          leadTimeMaxDays: null,
+          lowStockThreshold: null,
           isActive: true,
         },
       ],
@@ -516,5 +536,92 @@ describe('variantComboUsage', () => {
       ],
     });
     expect(usage.get('v2')?.title).toBe('Lotus');
+  });
+});
+
+describe('a variant’s own details', () => {
+  it('names the ones it has, for its row’s summary', () => {
+    expect(ownDetails(row({}))).toEqual([]);
+    expect(
+      ownDetails(
+        row({
+          highlights: ['Hand-painted'],
+          material: 'Brass',
+          specifications: [
+            { label: 'Finish', value: 'Glossy' },
+            { label: 'Base', value: 'Steel' },
+          ],
+          deliveryCharge: 'EXTRA',
+          leadTimeDays: 7,
+        }),
+      ),
+    ).toEqual([
+      '1 highlight',
+      'Material',
+      '2 specifications',
+      'Delivery',
+      'Making time',
+    ]);
+  });
+
+  it('copies them to every variant with the same value of an option', () => {
+    const state = designBySize();
+    state.rows[0] = {
+      ...state.rows[0],
+      material: 'Brass',
+      colors: [{ name: 'Gold', hex: '#ffd700' }],
+      lowStockThreshold: 2,
+    };
+
+    const copied = copyDetailsToSiblings(state, 0, 0);
+    const peacocks = copied.rows.filter((r) => r.values[0] === 'Peacock');
+    const lotuses = copied.rows.filter((r) => r.values[0] === 'Lotus');
+
+    expect(peacocks.every((r) => r.material === 'Brass')).toBe(true);
+    expect(peacocks.every((r) => r.lowStockThreshold === 2)).toBe(true);
+    expect(lotuses.every((r) => r.material === '')).toBe(true);
+    // A copy, not the same list — editing one leaves the other alone
+    expect(peacocks[1].colors).not.toBe(peacocks[0].colors);
+  });
+
+  it('sends its own details, and a fee only while delivery is charged extra', () => {
+    const state = designBySize();
+    state.rows[0] = {
+      ...state.rows[0],
+      price: 499,
+      material: '  Brass ',
+      deliveryCharge: 'INCLUDED',
+      deliveryFee: 80,
+      leadTimeDays: 10,
+      leadTimeMaxDays: 15,
+    };
+
+    const [variant] = toVariantsPayload(state).variants;
+    expect(variant).toMatchObject({
+      material: 'Brass',
+      deliveryCharge: 'INCLUDED',
+      deliveryFee: null,
+      leadTimeDays: 10,
+      leadTimeMaxDays: 15,
+      lowStockThreshold: null,
+    });
+    expect(NO_OWN_DETAILS.highlights).toEqual([]);
+  });
+});
+
+describe('bulk price and stock changes', () => {
+  it('sets a price, or moves it by a percentage or an amount', () => {
+    expect(changePrice(499, 'set', 549, false)).toBe(549);
+    expect(changePrice(499, 'raise_percent', 10, false)).toBe(548.9);
+    expect(changePrice(499, 'raise_percent', 10, true)).toBe(549);
+    expect(changePrice(500, 'lower_percent', 15, false)).toBe(425);
+    expect(changePrice(499, 'raise_amount', 50, false)).toBe(549);
+    expect(changePrice(499, 'lower_amount', 0.5, false)).toBe(498.5);
+  });
+
+  it('adds a delivery to the stock, or replaces it', () => {
+    expect(changeStock(3, 'add', 5)).toBe(8);
+    expect(changeStock(3, 'set', 5)).toBe(5);
+    expect(changeStock(Number.NaN, 'add', 5)).toBe(5);
   });
 });
