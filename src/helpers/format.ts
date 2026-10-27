@@ -31,6 +31,19 @@ export const formatDelivery = ({ charge, fee }: Delivery) => {
 
 export const formatDate = (iso: string) => dayjs(iso).format('MMM D, YYYY');
 
+const BYTE_UNITS = ['bytes', 'KB', 'MB', 'GB', 'TB'];
+
+/** "2.3 GB", "450 KB" — in 1000s, as Cloudinary counts its gigabytes. */
+export const formatBytes = (bytes: number) => {
+  const power = Math.min(
+    BYTE_UNITS.length - 1,
+    bytes > 0 ? Math.floor(Math.log10(bytes) / 3) : 0,
+  );
+  const value = bytes / 1000 ** power;
+  const digits = power === 0 || value >= 100 ? 0 : 1;
+  return `${value.toFixed(digits).replace(/\.0$/, '')} ${BYTE_UNITS[power]}`;
+};
+
 export const formatDateTime = (iso: string) =>
   dayjs(iso).format('MMM D, YYYY · h:mm A');
 

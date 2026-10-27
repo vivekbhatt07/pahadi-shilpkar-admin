@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { resizedImage, showOriginalOnError } from '@/helpers/image';
 
 type TPhotoPreviewDialogProps = {
   /** The photos of one testimonial. */
@@ -58,8 +59,10 @@ const PhotoPreviewDialog = ({
           <div className="relative flex items-center justify-center overflow-hidden rounded-lg bg-stone-100 dark:bg-stone-800">
             <img
               key={photos[current]}
-              src={photos[current]}
+              // The storefront's copy for its photo viewer
+              src={resizedImage(photos[current], 1280)}
               alt=""
+              onError={showOriginalOnError(photos[current])}
               className="max-h-[65dvh] w-auto object-contain"
             />
             {count > 1 && (

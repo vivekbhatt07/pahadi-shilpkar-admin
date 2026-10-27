@@ -5,6 +5,7 @@ import type {
   DashboardStats,
   ProductDemand,
   StockAlertStats,
+  ViewStats,
 } from '@/types/api';
 
 export const statsService = {
@@ -28,6 +29,14 @@ export const statsService = {
     const { data } = await api.get<ApiResponse<StockAlertStats>>(
       '/stats/stock-alerts',
     );
+    return data;
+  },
+
+  /** Product and combo page views against buy clicks, over `days` days (1–365). */
+  getViews: async (days: number) => {
+    const { data } = await api.get<ApiResponse<ViewStats>>('/stats/views', {
+      params: { days },
+    });
     return data;
   },
 

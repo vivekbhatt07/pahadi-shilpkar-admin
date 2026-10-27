@@ -8,6 +8,8 @@ import type {
   Product,
   ProductDetail,
   ProductListParams,
+  StockHistoryParams,
+  StockMovement,
   UpdateProductPayload,
   UpdateVariantPayload,
   VariantListParams,
@@ -49,6 +51,18 @@ const toVariantQuery = (params: VariantListParams) => {
 };
 
 export const productsService = {
+  /** Every change to its stock count (or its variants'), and why, newest first. */
+  getStockHistory: async (
+    productId: string,
+    params: StockHistoryParams = {},
+  ) => {
+    const { data } = await api.get<ApiResponse<Paginated<StockMovement>>>(
+      `/products/${productId}/stock-history`,
+      { params },
+    );
+    return data;
+  },
+
   /** Newest first by default. Without includeInactive only active products are returned. */
   list: async (params: ProductListParams = {}) => {
     const { data } = await api.get<ApiResponse<Paginated<Product>>>(

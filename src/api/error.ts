@@ -25,28 +25,17 @@ export class ApiError extends Error {
   }
 }
 
-/**
- * The backend returns validation errors as a JSON-stringified array in
- * `error`: `"[{\"field\":\"price\",\"message\":\"...\"}]"`.
- */
+const isFieldError = (item: unknown): item is TApiFieldError =>
+  typeof item === 'object' &&
+  item !== null &&
+  typeof (item as TApiFieldError).field === 'string' &&
+  typeof (item as TApiFieldError).message === 'string';
+
+/** A 400's field errors — its `errors` list. */
 export const parseFieldErrors = (
-  raw: string | undefined,
-): TApiFieldError[] | undefined => {
-  if (!raw) return undefined;
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return undefined;
-    return parsed.filter(
-      (item): item is TApiFieldError =>
-        typeof item === 'object' &&
-        item !== null &&
-        typeof item.field === 'string' &&
-        typeof item.message === 'string',
-    );
-  } catch {
-    return undefined;
-  }
-};
+  body: { errors?: unknown } | undefined,
+): TApiFieldError[] | undefined =>
+  Array.isArray(body?.errors) ? body.errors.filter(isFieldError) : undefined;
 
 export const isApiError = (error: unknown): error is ApiError =>
   error instanceof ApiError;

@@ -7,7 +7,10 @@ export interface ApiResponse<T = null> {
   success: boolean;
   message: string;
   data?: T;
+  /** A detail some errors carry — an upload's rejected field, say. */
   error?: string;
+  /** On a 400 from validation — what's wrong with each field. */
+  errors?: { field: string; message: string }[];
 }
 
 export interface Paginated<T> {
@@ -437,6 +440,8 @@ export interface DashboardStats {
   };
   /** `new` = status NEW, not looked at yet. */
   inquiries: { total: number; new: number };
+  /** Background jobs that gave up — emails or cleanups that never ran. */
+  jobs: { failed: number };
   whatsappConfigured: boolean;
 }
 
@@ -1627,4 +1632,172 @@ export interface ProfitReport {
     quantity: number;
     spent: number;
   }[];
+}
+
+// ─────────────────────────────────────────
+// Activity log — GET /api/activity
+// ─────────────────────────────────────────
+
+/** The parts of the API the log can be filtered to. */
+export type ActivityArea =
+  | 'products'
+  | 'variants'
+  | 'combos'
+  | 'categories'
+  | 'banners'
+  | 'inquiries'
+  | 'testimonials'
+  | 'process'
+  | 'settings'
+  | 'costing'
+  | 'storage'
+  | 'jobs';
+
+/** One change an admin made — the route and the fields sent, never values. */
+export interface AdminActivity {
+  id: string;
+  method: 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  /** As written — "/api/products/:id" */
+  route: string;
+  targetId: string | null;
+  fields: string[];
+  /** What targetId is called today; null once deleted, or with no name. */
+  target: { name: string; slug: string | null } | null;
+  user: Pick<User, 'id' | 'firstName' | 'lastName' | 'email' | 'avatar'> | null;
+  createdAt: string;
+}
+
+export interface ActivityListParams {
+  area?: ActivityArea;
+  targetId?: string;
+  userId?: string;
+  page?: number;
+  limit?: number;
+}
+
+// ─────────────────────────────────────────
+// Stock history — GET /api/products/:id/stock-history
+// ─────────────────────────────────────────
+
+export type StockMovementReason =
+  | 'ADJUSTED'
+  | 'RESTOCKED'
+  | 'SOLD'
+  | 'SALE_EDITED'
+  | 'SALE_DELETED';
+
+/** One change to a product's or a variant's stock count, and why. */
+export interface StockMovement {
+  id: string;
+  /** + put in, − taken out */
+  change: number;
+  stockAfter: number;
+  reason: StockMovementReason;
+  variantId: string | null;
+  variantTitle: string | null;
+  saleId: string | null;
+  user: Pick<User, 'id' | 'firstName' | 'lastName'> | null;
+  createdAt: string;
+}
+
+export interface StockHistoryParams {
+  variantId?: string;
+  page?: number;
+  limit?: number;
+}
+
+// ─────────────────────────────────────────
+// Page views — GET /api/stats/views
+// ─────────────────────────────────────────
+
+/** One product's or combo's page views, against its buy clicks. */
+export interface ListingPerformance {
+  kind: 'product' | 'combo';
+  id: string;
+  name: string;
+  slug: string;
+  image: string | null;
+  views: number;
+  clicks: number;
+}
+
+export interface ViewStats {
+  days: number;
+  views: number;
+  clicks: number;
+  /** The most viewed */
+  top: ListingPerformance[];
+}
+
+// ─────────────────────────────────────────
+// Photo storage — /api/storage (the store's Cloudinary account)
+// ─────────────────────────────────────────
+
+export interface UsageMeter {
+  /** A count for transformations; bytes for storage and bandwidth */
+  used: number;
+  /** What that has cost, on a plan of monthly credits (the free one) */
+  credits: number | null;
+  /** Its own cap, on a plan that sets one for each meter */
+  limit: number | null;
+  usedPercent: number | null;
+}
+
+/** This month's usage — Cloudinary counts about once a day. */
+export interface StorageUsage {
+  plan: string | null;
+  /** The day Cloudinary last counted */
+  countedOn: string | null;
+  /** On a plan of monthly credits: what the three meters used between them */
+  credits: { used: number; limit: number; usedPercent: number } | null;
+  transformations: UsageMeter;
+  storage: UsageMeter;
+  bandwidth: UsageMeter;
+  /** The credits' share, or else the fullest meter's */
+  usedPercent: number | null;
+}
+
+/** An uploaded photo nothing uses — picked in a form that was never saved. */
+export interface UnusedImage {
+  publicId: string;
+  url: string;
+  bytes: number;
+  uploadedAt: string;
+}
+
+export interface UnusedImages {
+  /** Oldest first */
+  items: UnusedImage[];
+  totalBytes: number;
+  /** Unused at least this long — sooner, it may be in a form being filled */
+  minAgeDays: number;
+}
+
+// ─────────────────────────────────────────
+// Background jobs that gave up — /api/jobs
+// ─────────────────────────────────────────
+
+export type JobType =
+  | 'VERIFICATION_EMAIL'
+  | 'STOCK_ALERTS'
+  | 'INQUIRY_NOTIFICATION'
+  | 'IMAGE_CLEANUP'
+  | 'ORPHAN_IMAGE_SWEEP'
+  | 'REJECTED_TESTIMONIAL_CLEANUP';
+
+/** A job tried five times over about 40 minutes, then given up on. */
+export interface FailedJob {
+  id: string;
+  /** A JobType — or one this panel doesn't know yet */
+  type: string;
+  attempts: number;
+  lastError: string | null;
+  createdAt: string;
+  failedAt: string;
+}
+
+export interface FailedJobs {
+  /** Newest first, at most 50 */
+  items: FailedJob[];
+  total: number;
 }

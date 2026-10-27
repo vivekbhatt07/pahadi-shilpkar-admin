@@ -1,8 +1,10 @@
 import { lazy, type ComponentType } from 'react';
 
-// Every page except sign-in and the 404 loads on demand, so the sign-in screen
-// doesn't wait for the whole admin. Once signed in, preloadPagesWhenIdle()
-// fetches the rest in the background and navigation never waits on a chunk.
+// Every page but the 404 loads on demand — sign-in too: a session lasts days,
+// so most visits open straight on the dashboard, and needn't download the
+// sign-in form (with zod and react-hook-form) first. Once signed in,
+// preloadPagesWhenIdle() fetches the rest in the background and navigation
+// never waits on a chunk.
 
 type TPageModule = { default: ComponentType };
 
@@ -16,12 +18,14 @@ const lazyPage = (load: TPageLoader) => {
   return lazy(load);
 };
 
+export const SignInPage = lazyPage(() => import('@/pages/public/auth/sign-in'));
 export const ForgotPasswordPage = lazyPage(
   () => import('@/pages/public/auth/forgot-password'),
 );
 export const DashboardPage = lazyPage(
   () => import('@/pages/private/dashboard'),
 );
+export const ActivityPage = lazyPage(() => import('@/pages/private/activity'));
 export const CategoriesPage = lazyPage(
   () => import('@/pages/private/categories'),
 );
@@ -92,6 +96,9 @@ export const StoreSettingsPage = lazyPage(
 );
 export const CostingSettingsPage = lazyPage(
   () => import('@/pages/private/settings/costing'),
+);
+export const PhotoStoragePage = lazyPage(
+  () => import('@/pages/private/settings/storage'),
 );
 export const AppearancePage = lazyPage(
   () => import('@/pages/private/settings/appearance'),

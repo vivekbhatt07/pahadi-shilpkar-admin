@@ -75,6 +75,8 @@ const StepRow = ({
       <ImageThumb
         src={step.image}
         alt={step.title}
+        // The storefront's crop for a step
+        aspect="4:3"
         className={cn(
           'hidden aspect-4/3 w-20 transition-opacity sm:flex',
           !step.isActive && 'opacity-60',

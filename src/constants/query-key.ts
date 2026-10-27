@@ -1,4 +1,5 @@
 import type {
+  ActivityListParams,
   BannerListParams,
   CategoryListParams,
   ComboListParams,
@@ -10,6 +11,7 @@ import type {
   InquiryListParams,
   ProcessParams,
   ProductListParams,
+  StockHistoryParams,
   TestimonialListParams,
   UserListParams,
   VariantListParams,
@@ -53,6 +55,16 @@ export const QUERY_KEYS = {
     ['stats', 'product-demand', productId, days] as const,
   /** Deliberately not under STATS — admin writes never change storefront clicks. */
   BUY_CLICK_STATS: (days: number) => ['buy-click-stats', days] as const,
+  /** Nor views — only shoppers open pages. */
+  VIEW_STATS: (days: number) => ['view-stats', days] as const,
+  /** Under STATS — every admin write adds an entry. */
+  ACTIVITY: (params: ActivityListParams) =>
+    ['stats', 'activity', params] as const,
+  /** Under STATS, beside the count it lists — a retry or dismiss moves both. */
+  FAILED_JOBS: ['stats', 'jobs', 'failed'] as const,
+  /** Under STATS — a product save, a restock or a sale can each move stock. */
+  STOCK_HISTORY: (productId: string, params: StockHistoryParams) =>
+    ['stats', 'stock-history', productId, params] as const,
   TESTIMONIALS: {
     ALL: ['testimonials'] as const,
     ALL_LIST: (params: TestimonialListParams) =>
@@ -64,6 +76,12 @@ export const QUERY_KEYS = {
   },
   SETTINGS: {
     GET: ['settings'] as const,
+  },
+  /** Cloudinary's figures — no admin write but deleting photos moves them. */
+  STORAGE: {
+    ALL: ['storage'] as const,
+    USAGE: ['storage', 'usage'] as const,
+    UNUSED_IMAGES: ['storage', 'unused-images'] as const,
   },
   BANNERS: {
     ALL: ['banners'] as const,

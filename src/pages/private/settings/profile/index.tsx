@@ -76,8 +76,8 @@ const ProfilePage = () => {
     const changed = pickChangedFields(toFormData(user), data);
     if (Object.keys(changed).length === 0) return;
 
-    // Only changed keys are sent. Cleared optional fields are sent as null
-    // (see the TODO on UpdateProfilePayload).
+    // Only changed keys are sent. Cleared optional fields are sent as null,
+    // which clears them (see UpdateProfilePayload).
     const payload: UpdateProfilePayload = {
       ...(changed.firstName !== undefined && { firstName: changed.firstName }),
       ...(changed.lastName !== undefined && { lastName: changed.lastName }),

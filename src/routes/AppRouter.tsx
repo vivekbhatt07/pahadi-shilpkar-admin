@@ -5,10 +5,10 @@ import PageLayout from '@/components/layouts/PageLayout';
 import { Loader } from '@/components/ui/loader';
 import { ROUTES } from '@/constants/routes';
 import { useAuthBootstrap } from '@/hooks/auth';
-import SignInPage from '@/pages/public/auth/sign-in';
 import NotFoundPage from '@/pages/public/errors/not-found';
 
 import {
+  ActivityPage,
   AppearancePage,
   BannersPage,
   CategoriesPage,
@@ -28,6 +28,7 @@ import {
   InquiriesPage,
   MaterialDetailPage,
   MaterialsPage,
+  PhotoStoragePage,
   ProcessPage,
   ProductCostingPage,
   ProductDetailPage,
@@ -36,6 +37,7 @@ import {
   SalesPage,
   SecurityPage,
   SettingsLayout,
+  SignInPage,
   StoreSettingsPage,
   TestimonialsPage,
   VariantsPage,
@@ -75,6 +77,7 @@ export const AppRouter = () => {
         {/* Admin pages */}
         <Route element={<ProtectedRoute />}>
           <Route path={ROUTES.PRIVATE.DASHBOARD} element={<DashboardPage />} />
+          <Route path={ROUTES.PRIVATE.ACTIVITY} element={<ActivityPage />} />
           <Route
             path={ROUTES.PRIVATE.CATEGORIES}
             element={<CategoriesPage />}
@@ -156,6 +159,7 @@ export const AppRouter = () => {
             <Route path="security" element={<SecurityPage />} />
             <Route path="store" element={<StoreSettingsPage />} />
             <Route path="costing" element={<CostingSettingsPage />} />
+            <Route path="storage" element={<PhotoStoragePage />} />
             <Route path="appearance" element={<AppearancePage />} />
           </Route>
         </Route>

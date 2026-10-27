@@ -27,6 +27,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { applyApiFieldErrors, pickChangedFields } from '@/helpers/form';
 import { isValidUrl } from '@/helpers/format';
+import { resizedImage, showOriginalOnError } from '@/helpers/image';
 import { useCreateBanner, useUpdateBanner } from '@/hooks/banners';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import type { Banner } from '@/types/api';
@@ -79,12 +80,12 @@ const SlidePreview = ({
         <img
           // A new URL gets a fresh element, so an earlier failure doesn't stick
           key={image}
-          src={image}
+          src={resizedImage(image, 1280)}
           alt=""
           className="absolute inset-0 size-full object-cover"
-          onError={(event) => {
-            event.currentTarget.style.visibility = 'hidden';
-          }}
+          onError={showOriginalOnError(image, (failed) => {
+            failed.style.visibility = 'hidden';
+          })}
         />
       )}
       <div

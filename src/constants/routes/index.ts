@@ -1,6 +1,8 @@
 export const ROUTES = {
   PRIVATE: {
     DASHBOARD: '/',
+    /** Every change admins made — who, what and when. */
+    ACTIVITY: '/activity',
     CATEGORIES: '/categories',
     PRODUCTS: {
       ROOT: '/products',
@@ -37,6 +39,8 @@ export const ROUTES = {
       SECURITY: '/settings/security',
       STORE: '/settings/store',
       COSTING: '/settings/costing',
+      /** The store's Cloudinary account — usage, and photos nothing uses. */
+      STORAGE: '/settings/storage',
       APPEARANCE: '/settings/appearance',
     },
   },

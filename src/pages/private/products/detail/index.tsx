@@ -54,6 +54,7 @@ import ListingTestimonials from '../../testimonials/layouts/ListingTestimonials'
 import { PRODUCT_DELETE_CONFIRMATION } from '../constants';
 import { AVAILABILITY_LABELS, availabilityVariant } from '../helpers';
 import ProductGallery from './layouts/ProductGallery';
+import StockHistoryCard from './layouts/StockHistoryCard';
 import VariantQuickEditDialog from './layouts/VariantQuickEditDialog';
 import VariantsTable from './layouts/VariantsTable';
 
@@ -388,6 +389,8 @@ const ProductDetailPage = () => {
               </CardContent>
             </Card>
           )}
+
+          <StockHistoryCard productId={item.id} />
 
           <ProductCostingCard productId={item.id} />
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  formatBytes,
   formatDelivery,
   formatPrice,
   getDisplayName,
@@ -61,5 +62,16 @@ describe('isValidUrl', () => {
     expect(isValidUrl('https://example.com/a.jpg')).toBe(true);
     expect(isValidUrl('javascript:alert(1)')).toBe(false);
     expect(isValidUrl('example.com')).toBe(false);
+  });
+});
+
+describe('formatBytes', () => {
+  it('picks the unit, in 1000s as Cloudinary counts', () => {
+    expect(formatBytes(0)).toBe('0 bytes');
+    expect(formatBytes(950)).toBe('950 bytes');
+    expect(formatBytes(15_300)).toBe('15.3 KB');
+    expect(formatBytes(2_000_000)).toBe('2 MB');
+    expect(formatBytes(2_456_000_000)).toBe('2.5 GB');
+    expect(formatBytes(312_000_000)).toBe('312 MB');
   });
 });

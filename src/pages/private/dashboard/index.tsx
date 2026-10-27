@@ -1,6 +1,6 @@
+import { useState } from 'react';
 import { Link as RouterLink } from 'react-router';
 import {
-  ArrowRight,
   ChevronRight,
   FolderPlus,
   FolderTree,
@@ -21,7 +21,7 @@ import RatingStars from '@/components/custom/RatingStars';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { ROUTES } from '@/constants/routes';
 import {
   formatDate,
@@ -33,12 +33,21 @@ import {
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useProducts } from '@/hooks/products';
 import { useStats } from '@/hooks/stats';
+import { useStorageUsage } from '@/hooks/storage';
 import { useAllTestimonials } from '@/hooks/testimonials';
 import { useAuthStore } from '@/store/authStore';
 
+import {
+  USAGE_DANGER_PERCENT,
+  USAGE_WARNING_PERCENT,
+} from '../settings/storage/helpers';
 import { TESTIMONIAL_STATUS_BADGES } from '../testimonials/constants';
 import { getTestimonialListing } from '../testimonials/helpers';
 import BuyingInterestCard from './layouts/BuyingInterestCard';
+import FailedJobsDialog from './layouts/FailedJobsDialog';
+import ListingViewsCard from './layouts/ListingViewsCard';
+import PanelHeader from './layouts/PanelHeader';
+import RecentActivityCard from './layouts/RecentActivityCard';
 import ListSkeletonRows from './layouts/ListSkeletonRows';
 import RestockDemandCard from './layouts/RestockDemandCard';
 import StatCard from './layouts/StatCard';
@@ -51,34 +60,6 @@ const getGreeting = () => {
   if (hour < 17) return 'Good afternoon';
   return 'Good evening';
 };
-
-const PanelHeader = ({
-  icon,
-  title,
-  to,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  to: string;
-}) => (
-  <CardHeader className="flex flex-row items-center justify-between border-b border-stone-100 pb-3 dark:border-stone-800">
-    <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-      <span className="text-stone-400 [&_svg]:size-4">{icon}</span>
-      {title}
-    </CardTitle>
-    <Button
-      variant="ghost"
-      size="sm"
-      asChild
-      className="group/view -mr-2 gap-1 text-xs text-stone-500"
-    >
-      <RouterLink to={to}>
-        View all
-        <ArrowRight className="size-3.5 transition-transform group-hover/view:translate-x-0.5" />
-      </RouterLink>
-    </Button>
-  </CardHeader>
-);
 
 /**
  * Every count comes from one `GET /api/stats` call; buying interest and
@@ -95,6 +76,8 @@ const DashboardPage = () => {
     limit: RECENT_LIMIT,
   });
   const testimonials = useAllTestimonials({ limit: RECENT_LIMIT });
+  // Kept for an hour; a server without Cloudinary simply shows nothing
+  const storageUsage = useStorageUsage();
 
   const counts = stats.data;
   const recentItems = recentProducts.data?.items ?? [];
@@ -105,6 +88,9 @@ const DashboardPage = () => {
   const newInquiryCount = counts?.inquiries.new ?? 0;
   const pendingTestimonialCount = counts?.testimonials.pending ?? 0;
   const photoRequestCount = counts?.testimonials.photoRequests ?? 0;
+  const storagePercent = storageUsage.data?.usedPercent ?? null;
+  const failedJobCount = counts?.jobs.failed ?? 0;
+  const [showFailedJobs, setShowFailedJobs] = useState(false);
 
   const greeting = user?.firstName
     ? `${getGreeting()}, ${user.firstName}`
@@ -148,6 +134,53 @@ const DashboardPage = () => {
         >
           Set a WhatsApp number in Store settings so every product gets a
           working buy button.
+        </Callout>
+      )}
+
+      {failedJobCount > 0 && (
+        <Callout
+          variant="danger"
+          size="md"
+          title={`${failedJobCount} background ${
+            failedJobCount === 1 ? 'task' : 'tasks'
+          } gave up`}
+          action={
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowFailedJobs(true)}
+            >
+              See what failed
+            </Button>
+          }
+        >
+          An email that didn’t go out or a cleanup that didn’t run, even after
+          five tries. Try {failedJobCount === 1 ? 'it' : 'them'} again once the
+          email service is back.
+        </Callout>
+      )}
+      <FailedJobsDialog
+        open={showFailedJobs}
+        onOpenChange={setShowFailedJobs}
+      />
+
+      {storagePercent !== null && storagePercent >= USAGE_WARNING_PERCENT && (
+        <Callout
+          variant={
+            storagePercent >= USAGE_DANGER_PERCENT ? 'danger' : 'warning'
+          }
+          size="md"
+          title={`Photo storage is ${Math.round(storagePercent)}% used this month`}
+          action={
+            <Button variant="outline" size="sm" asChild>
+              <RouterLink to={ROUTES.PRIVATE.SETTINGS.STORAGE}>
+                See what's using it
+              </RouterLink>
+            </Button>
+          }
+        >
+          Past the plan's limit, Cloudinary may stop making new sizes of photos
+          until next month. Deleting unused photos frees storage.
         </Callout>
       )}
 
@@ -299,6 +332,11 @@ const DashboardPage = () => {
       <div className="grid animate-fade-up grid-cols-1 gap-6 [animation-delay:80ms] lg:grid-cols-2">
         <BuyingInterestCard />
         <RestockDemandCard />
+      </div>
+
+      <div className="grid animate-fade-up grid-cols-1 gap-6 [animation-delay:100ms] lg:grid-cols-2">
+        <ListingViewsCard />
+        <RecentActivityCard />
       </div>
 
       <div className="grid animate-fade-up grid-cols-1 gap-6 [animation-delay:120ms] lg:grid-cols-2">
