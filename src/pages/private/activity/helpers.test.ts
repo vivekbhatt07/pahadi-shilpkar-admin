@@ -34,6 +34,9 @@ describe('describeActivity', () => {
         route: '/api/storage/unused-images/delete',
       }),
     ).toBe('Deleted unused photos');
+    expect(
+      describeActivity({ method: 'POST', route: '/api/jobs/:id/retry' }),
+    ).toBe('Retried a failed background task');
   });
 
   it('falls back to the route itself', () => {

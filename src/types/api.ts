@@ -7,7 +7,7 @@ export interface ApiResponse<T = null> {
   success: boolean;
   message: string;
   data?: T;
-  /** On a 400 from validation, also the `errors` list as a JSON string. */
+  /** A detail some errors carry — an upload's rejected field, say. */
   error?: string;
   /** On a 400 from validation — what's wrong with each field. */
   errors?: { field: string; message: string }[];
@@ -440,6 +440,8 @@ export interface DashboardStats {
   };
   /** `new` = status NEW, not looked at yet. */
   inquiries: { total: number; new: number };
+  /** Background jobs that gave up — emails or cleanups that never ran. */
+  jobs: { failed: number };
   whatsappConfigured: boolean;
 }
 
@@ -1648,7 +1650,8 @@ export type ActivityArea =
   | 'process'
   | 'settings'
   | 'costing'
-  | 'storage';
+  | 'storage'
+  | 'jobs';
 
 /** One change an admin made — the route and the fields sent, never values. */
 export interface AdminActivity {
@@ -1768,4 +1771,33 @@ export interface UnusedImages {
   totalBytes: number;
   /** Unused at least this long — sooner, it may be in a form being filled */
   minAgeDays: number;
+}
+
+// ─────────────────────────────────────────
+// Background jobs that gave up — /api/jobs
+// ─────────────────────────────────────────
+
+export type JobType =
+  | 'VERIFICATION_EMAIL'
+  | 'STOCK_ALERTS'
+  | 'INQUIRY_NOTIFICATION'
+  | 'IMAGE_CLEANUP'
+  | 'ORPHAN_IMAGE_SWEEP'
+  | 'REJECTED_TESTIMONIAL_CLEANUP';
+
+/** A job tried five times over about 40 minutes, then given up on. */
+export interface FailedJob {
+  id: string;
+  /** A JobType — or one this panel doesn't know yet */
+  type: string;
+  attempts: number;
+  lastError: string | null;
+  createdAt: string;
+  failedAt: string;
+}
+
+export interface FailedJobs {
+  /** Newest first, at most 50 */
+  items: FailedJob[];
+  total: number;
 }

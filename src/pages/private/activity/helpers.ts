@@ -28,6 +28,8 @@ const PHRASES: Record<string, string> = {
   'PUT /api/costing/sheets': 'Saved a cost sheet',
   'DELETE /api/costing/sheets/:id': 'Deleted a cost sheet',
   'POST /api/storage/unused-images/delete': 'Deleted unused photos',
+  'POST /api/jobs/:id/retry': 'Retried a failed background task',
+  'DELETE /api/jobs/:id': 'Dismissed a failed background task',
 };
 
 // What a route's rows are called — the first prefix that matches
@@ -95,4 +97,5 @@ export const ACTIVITY_AREA_OPTIONS: { value: ActivityArea; label: string }[] = [
   { value: 'settings', label: 'Store settings' },
   { value: 'costing', label: 'Costing & sales' },
   { value: 'storage', label: 'Photo storage' },
+  { value: 'jobs', label: 'Background tasks' },
 ];

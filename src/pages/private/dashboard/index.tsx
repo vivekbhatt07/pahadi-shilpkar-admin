@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link as RouterLink } from 'react-router';
 import {
   ChevronRight,
@@ -43,6 +44,7 @@ import {
 import { TESTIMONIAL_STATUS_BADGES } from '../testimonials/constants';
 import { getTestimonialListing } from '../testimonials/helpers';
 import BuyingInterestCard from './layouts/BuyingInterestCard';
+import FailedJobsDialog from './layouts/FailedJobsDialog';
 import ListingViewsCard from './layouts/ListingViewsCard';
 import PanelHeader from './layouts/PanelHeader';
 import RecentActivityCard from './layouts/RecentActivityCard';
@@ -87,6 +89,8 @@ const DashboardPage = () => {
   const pendingTestimonialCount = counts?.testimonials.pending ?? 0;
   const photoRequestCount = counts?.testimonials.photoRequests ?? 0;
   const storagePercent = storageUsage.data?.usedPercent ?? null;
+  const failedJobCount = counts?.jobs.failed ?? 0;
+  const [showFailedJobs, setShowFailedJobs] = useState(false);
 
   const greeting = user?.firstName
     ? `${getGreeting()}, ${user.firstName}`
@@ -132,6 +136,33 @@ const DashboardPage = () => {
           working buy button.
         </Callout>
       )}
+
+      {failedJobCount > 0 && (
+        <Callout
+          variant="danger"
+          size="md"
+          title={`${failedJobCount} background ${
+            failedJobCount === 1 ? 'task' : 'tasks'
+          } gave up`}
+          action={
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowFailedJobs(true)}
+            >
+              See what failed
+            </Button>
+          }
+        >
+          An email that didn’t go out or a cleanup that didn’t run, even after
+          five tries. Try {failedJobCount === 1 ? 'it' : 'them'} again once the
+          email service is back.
+        </Callout>
+      )}
+      <FailedJobsDialog
+        open={showFailedJobs}
+        onOpenChange={setShowFailedJobs}
+      />
 
       {storagePercent !== null && storagePercent >= USAGE_WARNING_PERCENT && (
         <Callout

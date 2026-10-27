@@ -31,23 +31,11 @@ const isFieldError = (item: unknown): item is TApiFieldError =>
   typeof (item as TApiFieldError).field === 'string' &&
   typeof (item as TApiFieldError).message === 'string';
 
-/**
- * A 400's field errors: the `errors` array, or — from a backend from before
- * it was added — the same list JSON-stringified in `error`:
- * `"[{\"field\":\"price\",\"message\":\"...\"}]"`.
- */
+/** A 400's field errors — its `errors` list. */
 export const parseFieldErrors = (
-  body: { error?: string; errors?: unknown } | undefined,
-): TApiFieldError[] | undefined => {
-  if (Array.isArray(body?.errors)) return body.errors.filter(isFieldError);
-  if (!body?.error) return undefined;
-  try {
-    const parsed: unknown = JSON.parse(body.error);
-    return Array.isArray(parsed) ? parsed.filter(isFieldError) : undefined;
-  } catch {
-    return undefined;
-  }
-};
+  body: { errors?: unknown } | undefined,
+): TApiFieldError[] | undefined =>
+  Array.isArray(body?.errors) ? body.errors.filter(isFieldError) : undefined;
 
 export const isApiError = (error: unknown): error is ApiError =>
   error instanceof ApiError;

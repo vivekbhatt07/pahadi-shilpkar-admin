@@ -60,6 +60,8 @@ export const QUERY_KEYS = {
   /** Under STATS — every admin write adds an entry. */
   ACTIVITY: (params: ActivityListParams) =>
     ['stats', 'activity', params] as const,
+  /** Under STATS, beside the count it lists — a retry or dismiss moves both. */
+  FAILED_JOBS: ['stats', 'jobs', 'failed'] as const,
   /** Under STATS — a product save, a restock or a sale can each move stock. */
   STOCK_HISTORY: (productId: string, params: StockHistoryParams) =>
     ['stats', 'stock-history', productId, params] as const,
