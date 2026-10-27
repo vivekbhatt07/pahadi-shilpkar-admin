@@ -75,6 +75,12 @@ export const QUERY_KEYS = {
   SETTINGS: {
     GET: ['settings'] as const,
   },
+  /** Cloudinary's figures — no admin write but deleting photos moves them. */
+  STORAGE: {
+    ALL: ['storage'] as const,
+    USAGE: ['storage', 'usage'] as const,
+    UNUSED_IMAGES: ['storage', 'unused-images'] as const,
+  },
   BANNERS: {
     ALL: ['banners'] as const,
     LIST: (params: BannerListParams = {}) =>

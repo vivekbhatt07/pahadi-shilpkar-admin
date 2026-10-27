@@ -28,6 +28,12 @@ describe('describeActivity', () => {
     expect(describeActivity({ method: 'PATCH', route: '/api/settings' })).toBe(
       'Edited the store settings',
     );
+    expect(
+      describeActivity({
+        method: 'POST',
+        route: '/api/storage/unused-images/delete',
+      }),
+    ).toBe('Deleted unused photos');
   });
 
   it('falls back to the route itself', () => {

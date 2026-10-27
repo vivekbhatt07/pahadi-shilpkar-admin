@@ -4,6 +4,7 @@ import {
   GalleryHorizontalEnd,
   Gift,
   Hammer,
+  HardDrive,
   History,
   Inbox,
   Layers,
@@ -193,6 +194,12 @@ export const SETTINGS_ITEMS: TNavItem[] = [
     to: ROUTES.PRIVATE.SETTINGS.COSTING,
     icon: Percent,
     keywords: 'commission marketplace fees gst tax target margin',
+  },
+  {
+    label: 'Photo storage',
+    to: ROUTES.PRIVATE.SETTINGS.STORAGE,
+    icon: HardDrive,
+    keywords: 'cloudinary images usage credits unused delete',
   },
   {
     label: 'Appearance',

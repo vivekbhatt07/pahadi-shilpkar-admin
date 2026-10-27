@@ -61,6 +61,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { SimpleTooltip } from '@/components/ui/tooltip';
 import { ROUTES } from '@/constants/routes';
 import { formatPrice } from '@/helpers/format';
+import { resizedImage, showOriginalOnError } from '@/helpers/image';
 import { cn } from '@/lib/utils';
 import type { ProductAvailability } from '@/types/api';
 
@@ -261,9 +262,10 @@ const VariantRow = ({
           >
             {row.images[0] ? (
               <img
-                src={row.images[0]}
+                src={resizedImage(row.images[0], 320, '1:1')}
                 alt=""
                 className="size-full object-cover"
+                onError={showOriginalOnError(row.images[0])}
               />
             ) : (
               <ImagePlus className="size-4" />

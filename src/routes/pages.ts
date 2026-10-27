@@ -97,6 +97,9 @@ export const StoreSettingsPage = lazyPage(
 export const CostingSettingsPage = lazyPage(
   () => import('@/pages/private/settings/costing'),
 );
+export const PhotoStoragePage = lazyPage(
+  () => import('@/pages/private/settings/storage'),
+);
 export const AppearancePage = lazyPage(
   () => import('@/pages/private/settings/appearance'),
 );

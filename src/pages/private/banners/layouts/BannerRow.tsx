@@ -76,6 +76,7 @@ const BannerRow = ({
       <ImageThumb
         src={banner.image}
         alt={banner.title}
+        aspect={null}
         className={cn(
           'hidden aspect-3/1 w-36 transition-opacity sm:flex',
           status !== 'live' && 'opacity-60',

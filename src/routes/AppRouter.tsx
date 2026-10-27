@@ -28,6 +28,7 @@ import {
   InquiriesPage,
   MaterialDetailPage,
   MaterialsPage,
+  PhotoStoragePage,
   ProcessPage,
   ProductCostingPage,
   ProductDetailPage,
@@ -158,6 +159,7 @@ export const AppRouter = () => {
             <Route path="security" element={<SecurityPage />} />
             <Route path="store" element={<StoreSettingsPage />} />
             <Route path="costing" element={<CostingSettingsPage />} />
+            <Route path="storage" element={<PhotoStoragePage />} />
             <Route path="appearance" element={<AppearancePage />} />
           </Route>
         </Route>

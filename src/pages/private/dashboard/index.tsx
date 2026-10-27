@@ -32,9 +32,14 @@ import {
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useProducts } from '@/hooks/products';
 import { useStats } from '@/hooks/stats';
+import { useStorageUsage } from '@/hooks/storage';
 import { useAllTestimonials } from '@/hooks/testimonials';
 import { useAuthStore } from '@/store/authStore';
 
+import {
+  USAGE_DANGER_PERCENT,
+  USAGE_WARNING_PERCENT,
+} from '../settings/storage/helpers';
 import { TESTIMONIAL_STATUS_BADGES } from '../testimonials/constants';
 import { getTestimonialListing } from '../testimonials/helpers';
 import BuyingInterestCard from './layouts/BuyingInterestCard';
@@ -69,6 +74,8 @@ const DashboardPage = () => {
     limit: RECENT_LIMIT,
   });
   const testimonials = useAllTestimonials({ limit: RECENT_LIMIT });
+  // Kept for an hour; a server without Cloudinary simply shows nothing
+  const storageUsage = useStorageUsage();
 
   const counts = stats.data;
   const recentItems = recentProducts.data?.items ?? [];
@@ -79,6 +86,7 @@ const DashboardPage = () => {
   const newInquiryCount = counts?.inquiries.new ?? 0;
   const pendingTestimonialCount = counts?.testimonials.pending ?? 0;
   const photoRequestCount = counts?.testimonials.photoRequests ?? 0;
+  const storagePercent = storageUsage.data?.usedPercent ?? null;
 
   const greeting = user?.firstName
     ? `${getGreeting()}, ${user.firstName}`
@@ -122,6 +130,26 @@ const DashboardPage = () => {
         >
           Set a WhatsApp number in Store settings so every product gets a
           working buy button.
+        </Callout>
+      )}
+
+      {storagePercent !== null && storagePercent >= USAGE_WARNING_PERCENT && (
+        <Callout
+          variant={
+            storagePercent >= USAGE_DANGER_PERCENT ? 'danger' : 'warning'
+          }
+          size="md"
+          title={`Photo storage is ${Math.round(storagePercent)}% used this month`}
+          action={
+            <Button variant="outline" size="sm" asChild>
+              <RouterLink to={ROUTES.PRIVATE.SETTINGS.STORAGE}>
+                See what's using it
+              </RouterLink>
+            </Button>
+          }
+        >
+          Past the plan's limit, Cloudinary may stop making new sizes of photos
+          until next month. Deleting unused photos frees storage.
         </Callout>
       )}
 

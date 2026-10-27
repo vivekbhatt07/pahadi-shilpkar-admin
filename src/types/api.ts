@@ -1647,7 +1647,8 @@ export type ActivityArea =
   | 'testimonials'
   | 'process'
   | 'settings'
-  | 'costing';
+  | 'costing'
+  | 'storage';
 
 /** One change an admin made — the route and the fields sent, never values. */
 export interface AdminActivity {
@@ -1723,4 +1724,48 @@ export interface ViewStats {
   clicks: number;
   /** The most viewed */
   top: ListingPerformance[];
+}
+
+// ─────────────────────────────────────────
+// Photo storage — /api/storage (the store's Cloudinary account)
+// ─────────────────────────────────────────
+
+export interface UsageMeter {
+  /** A count for transformations; bytes for storage and bandwidth */
+  used: number;
+  /** What that has cost, on a plan of monthly credits (the free one) */
+  credits: number | null;
+  /** Its own cap, on a plan that sets one for each meter */
+  limit: number | null;
+  usedPercent: number | null;
+}
+
+/** This month's usage — Cloudinary counts about once a day. */
+export interface StorageUsage {
+  plan: string | null;
+  /** The day Cloudinary last counted */
+  countedOn: string | null;
+  /** On a plan of monthly credits: what the three meters used between them */
+  credits: { used: number; limit: number; usedPercent: number } | null;
+  transformations: UsageMeter;
+  storage: UsageMeter;
+  bandwidth: UsageMeter;
+  /** The credits' share, or else the fullest meter's */
+  usedPercent: number | null;
+}
+
+/** An uploaded photo nothing uses — picked in a form that was never saved. */
+export interface UnusedImage {
+  publicId: string;
+  url: string;
+  bytes: number;
+  uploadedAt: string;
+}
+
+export interface UnusedImages {
+  /** Oldest first */
+  items: UnusedImage[];
+  totalBytes: number;
+  /** Unused at least this long — sooner, it may be in a form being filled */
+  minAgeDays: number;
 }

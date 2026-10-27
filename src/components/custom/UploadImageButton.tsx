@@ -38,7 +38,7 @@ const UploadImageButton = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const uploadImages = useUploadImages();
   const uploadAvatar = useUploadAvatar();
-  // Shrinking photos over 2MB first — a phone's usually are
+  // Re-encoding the photos first — see prepareImageForUpload
   const [isPreparing, setIsPreparing] = useState(false);
   const isUploading =
     isPreparing || uploadImages.isPending || uploadAvatar.isPending;
@@ -57,7 +57,8 @@ const UploadImageButton = ({
     return true;
   };
 
-  // Over 2MB, a photo is scaled down and re-encoded to fit
+  // Each photo is scaled to 2000px at most, without its metadata, and to
+  // fit 2MB
   const prepare = async (files: File[]) => {
     setIsPreparing(true);
     try {

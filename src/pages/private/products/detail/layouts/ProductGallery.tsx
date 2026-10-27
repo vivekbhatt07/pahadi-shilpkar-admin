@@ -43,6 +43,7 @@ const ProductGallery = ({ images, name, caption }: TProductGalleryProps) => {
           src={current}
           alt={name}
           rounded="lg"
+          width={960}
           className="aspect-square w-full animate-in border-0 duration-300 fade-in-0 [&_img]:transition-transform [&_img]:duration-500 group-hover:[&_img]:scale-[1.03]"
         />
         {hasMany && (
