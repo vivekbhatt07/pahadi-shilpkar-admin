@@ -25,24 +25,25 @@ export class ApiError extends Error {
   }
 }
 
+const isFieldError = (item: unknown): item is TApiFieldError =>
+  typeof item === 'object' &&
+  item !== null &&
+  typeof (item as TApiFieldError).field === 'string' &&
+  typeof (item as TApiFieldError).message === 'string';
+
 /**
- * The backend returns validation errors as a JSON-stringified array in
- * `error`: `"[{\"field\":\"price\",\"message\":\"...\"}]"`.
+ * A 400's field errors: the `errors` array, or — from a backend from before
+ * it was added — the same list JSON-stringified in `error`:
+ * `"[{\"field\":\"price\",\"message\":\"...\"}]"`.
  */
 export const parseFieldErrors = (
-  raw: string | undefined,
+  body: { error?: string; errors?: unknown } | undefined,
 ): TApiFieldError[] | undefined => {
-  if (!raw) return undefined;
+  if (Array.isArray(body?.errors)) return body.errors.filter(isFieldError);
+  if (!body?.error) return undefined;
   try {
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return undefined;
-    return parsed.filter(
-      (item): item is TApiFieldError =>
-        typeof item === 'object' &&
-        item !== null &&
-        typeof item.field === 'string' &&
-        typeof item.message === 'string',
-    );
+    const parsed: unknown = JSON.parse(body.error);
+    return Array.isArray(parsed) ? parsed.filter(isFieldError) : undefined;
   } catch {
     return undefined;
   }

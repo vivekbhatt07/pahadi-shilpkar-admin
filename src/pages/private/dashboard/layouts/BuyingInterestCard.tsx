@@ -15,9 +15,7 @@ import type { BuyClickCounts, BuyClickStats } from '@/types/api';
 import { PURCHASE_LINK_PLATFORM_OPTIONS } from '../../products/constants';
 import { CHANNEL_SWATCHES } from '../constants';
 import DailyClicksChart from './DailyClicksChart';
-
-const WINDOWS = [7, 30, 90] as const;
-type TWindow = (typeof WINDOWS)[number];
+import WindowPicker, { type TWindow } from './WindowPicker';
 
 const TOP_LIMIT = 5;
 
@@ -74,37 +72,6 @@ const ChannelCount = ({
     <dd className="mt-0.5 font-semibold text-stone-900 dark:text-stone-50">
       {value.toLocaleString('en-IN')}
     </dd>
-  </div>
-);
-
-const WindowPicker = ({
-  value,
-  onChange,
-}: {
-  value: TWindow;
-  onChange: (value: TWindow) => void;
-}) => (
-  <div
-    role="group"
-    aria-label="Time window"
-    className="flex rounded-lg bg-stone-100 p-0.5 dark:bg-stone-800"
-  >
-    {WINDOWS.map((option) => (
-      <button
-        key={option}
-        type="button"
-        aria-pressed={value === option}
-        onClick={() => onChange(option)}
-        className={cn(
-          'cursor-pointer rounded-md px-2 py-1 text-xs font-medium tabular-nums transition-colors outline-none focus-visible:ring-2 focus-visible:ring-accent-500/30',
-          value === option
-            ? 'bg-white text-stone-900 shadow-xs dark:bg-stone-900 dark:text-stone-50'
-            : 'text-stone-500 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-50',
-        )}
-      >
-        {option}d
-      </button>
-    ))}
   </div>
 );
 

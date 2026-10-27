@@ -1,11 +1,11 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { Loader2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
+import { prepareImageForUpload } from '@/helpers/image-upload';
 import { useUploadAvatar, useUploadImages } from '@/hooks/upload';
 
-const MAX_UPLOAD_SIZE_BYTES = 2 * 1024 * 1024;
 const MAX_IMAGES_PER_UPLOAD = 5;
 const ACCEPTED_MIME_TYPES = [
   'image/jpeg',
@@ -38,7 +38,10 @@ const UploadImageButton = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const uploadImages = useUploadImages();
   const uploadAvatar = useUploadAvatar();
-  const isUploading = uploadImages.isPending || uploadAvatar.isPending;
+  // Shrinking photos over 2MB first — a phone's usually are
+  const [isPreparing, setIsPreparing] = useState(false);
+  const isUploading =
+    isPreparing || uploadImages.isPending || uploadAvatar.isPending;
 
   const validate = (files: File[]) => {
     if (variant === 'images' && files.length > MAX_IMAGES_PER_UPLOAD) {
@@ -50,12 +53,23 @@ const UploadImageButton = ({
         toast.error('Only image files are allowed');
         return false;
       }
-      if (file.size > MAX_UPLOAD_SIZE_BYTES) {
-        toast.error('File size must be less than 2MB');
-        return false;
-      }
     }
     return true;
+  };
+
+  // Over 2MB, a photo is scaled down and re-encoded to fit
+  const prepare = async (files: File[]) => {
+    setIsPreparing(true);
+    try {
+      return await Promise.all(files.map(prepareImageForUpload));
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Couldn't read that image",
+      );
+      return null;
+    } finally {
+      setIsPreparing(false);
+    }
   };
 
   const handleChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -64,12 +78,15 @@ const UploadImageButton = ({
     if (files.length === 0) return;
     if (!validate(files)) return;
 
+    const ready = await prepare(files);
+    if (!ready) return;
+
     try {
       if (variant === 'avatar') {
-        const response = await uploadAvatar.mutateAsync(files[0]);
+        const response = await uploadAvatar.mutateAsync(ready[0]);
         if (response.data) onUploaded([response.data.url]);
       } else {
-        const response = await uploadImages.mutateAsync(files);
+        const response = await uploadImages.mutateAsync(ready);
         const urls = response.data?.images.map((image) => image.url) ?? [];
         if (urls.length > 0) onUploaded(urls);
       }
@@ -98,7 +115,7 @@ const UploadImageButton = ({
           isUploading ? <Loader2 className="animate-spin" /> : <Upload />
         }
       >
-        {isUploading ? 'Uploading…' : 'Upload'}
+        {isPreparing ? 'Preparing…' : isUploading ? 'Uploading…' : 'Upload'}
       </Button>
     </>
   );

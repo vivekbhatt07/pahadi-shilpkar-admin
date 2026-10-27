@@ -1,6 +1,8 @@
 export const ROUTES = {
   PRIVATE: {
     DASHBOARD: '/',
+    /** Every change admins made — who, what and when. */
+    ACTIVITY: '/activity',
     CATEGORIES: '/categories',
     PRODUCTS: {
       ROOT: '/products',

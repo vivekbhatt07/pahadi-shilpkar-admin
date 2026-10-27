@@ -73,8 +73,7 @@ api.interceptors.response.use(
       handled = true;
     }
 
-    const fieldErrors =
-      status === 400 ? parseFieldErrors(body?.error) : undefined;
+    const fieldErrors = status === 400 ? parseFieldErrors(body) : undefined;
 
     return Promise.reject(
       new ApiError(message, { status, fieldErrors, handled }),

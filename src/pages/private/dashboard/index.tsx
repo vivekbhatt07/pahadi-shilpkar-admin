@@ -1,6 +1,5 @@
 import { Link as RouterLink } from 'react-router';
 import {
-  ArrowRight,
   ChevronRight,
   FolderPlus,
   FolderTree,
@@ -21,7 +20,7 @@ import RatingStars from '@/components/custom/RatingStars';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { ROUTES } from '@/constants/routes';
 import {
   formatDate,
@@ -39,6 +38,9 @@ import { useAuthStore } from '@/store/authStore';
 import { TESTIMONIAL_STATUS_BADGES } from '../testimonials/constants';
 import { getTestimonialListing } from '../testimonials/helpers';
 import BuyingInterestCard from './layouts/BuyingInterestCard';
+import ListingViewsCard from './layouts/ListingViewsCard';
+import PanelHeader from './layouts/PanelHeader';
+import RecentActivityCard from './layouts/RecentActivityCard';
 import ListSkeletonRows from './layouts/ListSkeletonRows';
 import RestockDemandCard from './layouts/RestockDemandCard';
 import StatCard from './layouts/StatCard';
@@ -51,34 +53,6 @@ const getGreeting = () => {
   if (hour < 17) return 'Good afternoon';
   return 'Good evening';
 };
-
-const PanelHeader = ({
-  icon,
-  title,
-  to,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  to: string;
-}) => (
-  <CardHeader className="flex flex-row items-center justify-between border-b border-stone-100 pb-3 dark:border-stone-800">
-    <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-      <span className="text-stone-400 [&_svg]:size-4">{icon}</span>
-      {title}
-    </CardTitle>
-    <Button
-      variant="ghost"
-      size="sm"
-      asChild
-      className="group/view -mr-2 gap-1 text-xs text-stone-500"
-    >
-      <RouterLink to={to}>
-        View all
-        <ArrowRight className="size-3.5 transition-transform group-hover/view:translate-x-0.5" />
-      </RouterLink>
-    </Button>
-  </CardHeader>
-);
 
 /**
  * Every count comes from one `GET /api/stats` call; buying interest and
@@ -299,6 +273,11 @@ const DashboardPage = () => {
       <div className="grid animate-fade-up grid-cols-1 gap-6 [animation-delay:80ms] lg:grid-cols-2">
         <BuyingInterestCard />
         <RestockDemandCard />
+      </div>
+
+      <div className="grid animate-fade-up grid-cols-1 gap-6 [animation-delay:100ms] lg:grid-cols-2">
+        <ListingViewsCard />
+        <RecentActivityCard />
       </div>
 
       <div className="grid animate-fade-up grid-cols-1 gap-6 [animation-delay:120ms] lg:grid-cols-2">
