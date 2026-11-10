@@ -23,4 +23,15 @@ export const uploadService = {
     );
     return data;
   },
+
+  /** A logo or favicon, ≤2MB, jpg/png/webp/svg/ico. Stored exactly as sent. */
+  brandImage: async (file: File) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    const { data } = await api.post<ApiResponse<UploadedImage>>(
+      '/upload/brand-image',
+      formData,
+    );
+    return data;
+  },
 };

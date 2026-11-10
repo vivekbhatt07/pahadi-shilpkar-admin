@@ -3,8 +3,15 @@ import { Loader2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
-import { prepareImageForUpload } from '@/helpers/image-upload';
-import { useUploadAvatar, useUploadImages } from '@/hooks/upload';
+import {
+  MAX_UPLOAD_SIZE_BYTES,
+  prepareImageForUpload,
+} from '@/helpers/image-upload';
+import {
+  useUploadAvatar,
+  useUploadBrandImage,
+  useUploadImages,
+} from '@/hooks/upload';
 
 const MAX_IMAGES_PER_UPLOAD = 5;
 const ACCEPTED_MIME_TYPES = [
@@ -14,20 +21,31 @@ const ACCEPTED_MIME_TYPES = [
   'image/gif',
   'image/webp',
 ];
+const BRAND_MIME_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/svg+xml',
+  'image/x-icon',
+  'image/vnd.microsoft.icon',
+];
 
 type TUploadImageButtonProps = {
   onUploaded: (urls: string[]) => void;
   disabled?: boolean;
   multiple?: boolean;
-  /** Which backend endpoint to use — POST /upload/images (default) or /avatar. */
-  variant?: 'images' | 'avatar';
+  /**
+   * Which backend endpoint to use — POST /upload/images (default), /avatar,
+   * or /brand-image for logos and favicons.
+   */
+  variant?: 'images' | 'avatar' | 'brand';
 };
 
 /**
- * Uploads via the backend (`POST /api/upload/images` or `/avatar`). On
- * failure — including 503 "Image upload is not configured on the server" —
- * the caller's paste-a-URL field stays usable; this button is purely
- * additive.
+ * Uploads via the backend (`POST /api/upload/images`, `/avatar` or
+ * `/brand-image`). On failure — including 503 "Image upload is not configured
+ * on the server" — the caller's paste-a-URL field stays usable; this button
+ * is purely additive.
  */
 const UploadImageButton = ({
   onUploaded,
@@ -38,10 +56,16 @@ const UploadImageButton = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const uploadImages = useUploadImages();
   const uploadAvatar = useUploadAvatar();
+  const uploadBrandImage = useUploadBrandImage();
   // Re-encoding the photos first — see prepareImageForUpload
   const [isPreparing, setIsPreparing] = useState(false);
   const isUploading =
-    isPreparing || uploadImages.isPending || uploadAvatar.isPending;
+    isPreparing ||
+    uploadImages.isPending ||
+    uploadAvatar.isPending ||
+    uploadBrandImage.isPending;
+  const isBrand = variant === 'brand';
+  const acceptedTypes = isBrand ? BRAND_MIME_TYPES : ACCEPTED_MIME_TYPES;
 
   const validate = (files: File[]) => {
     if (variant === 'images' && files.length > MAX_IMAGES_PER_UPLOAD) {
@@ -49,8 +73,16 @@ const UploadImageButton = ({
       return false;
     }
     for (const file of files) {
-      if (!ACCEPTED_MIME_TYPES.includes(file.type)) {
-        toast.error('Only image files are allowed');
+      if (!acceptedTypes.includes(file.type)) {
+        toast.error(
+          isBrand
+            ? 'Use a PNG, JPG, WebP, SVG or ICO file'
+            : 'Only image files are allowed',
+        );
+        return false;
+      }
+      if (isBrand && file.size > MAX_UPLOAD_SIZE_BYTES) {
+        toast.error(`${file.name} is over 2MB`);
         return false;
       }
     }
@@ -79,12 +111,17 @@ const UploadImageButton = ({
     if (files.length === 0) return;
     if (!validate(files)) return;
 
-    const ready = await prepare(files);
+    // A logo goes up exactly as it was made: re-encoding would soften its
+    // edges, and the browser can't redraw an ICO or keep an SVG a vector
+    const ready = isBrand ? files : await prepare(files);
     if (!ready) return;
 
     try {
       if (variant === 'avatar') {
         const response = await uploadAvatar.mutateAsync(ready[0]);
+        if (response.data) onUploaded([response.data.url]);
+      } else if (isBrand) {
+        const response = await uploadBrandImage.mutateAsync(ready[0]);
         if (response.data) onUploaded([response.data.url]);
       } else {
         const response = await uploadImages.mutateAsync(ready);
@@ -101,7 +138,11 @@ const UploadImageButton = ({
       <input
         ref={inputRef}
         type="file"
-        accept={ACCEPTED_MIME_TYPES.join(',')}
+        accept={
+          isBrand
+            ? `${acceptedTypes.join(',')},.svg,.ico`
+            : acceptedTypes.join(',')
+        }
         multiple={multiple}
         className="hidden"
         onChange={handleChange}

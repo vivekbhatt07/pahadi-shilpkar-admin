@@ -223,7 +223,8 @@ const ProfilePage = () => {
                     />
                   </FormControl>
                   <FormDescription>
-                    Used to sign in to this panel.
+                    Used to sign in to this panel. Changing it signs you out
+                    until you open the link we email to the new address.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

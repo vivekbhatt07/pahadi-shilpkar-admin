@@ -38,6 +38,8 @@ export const ROUTES = {
       PROFILE: '/settings/profile',
       SECURITY: '/settings/security',
       STORE: '/settings/store',
+      /** The storefront's logos, favicon, footer and sign-in page. */
+      BRANDING: '/settings/branding',
       COSTING: '/settings/costing',
       /** The store's Cloudinary account — usage, and photos nothing uses. */
       STORAGE: '/settings/storage',

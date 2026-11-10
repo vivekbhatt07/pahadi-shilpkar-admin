@@ -3,7 +3,28 @@ import { Select as SelectPrimitive } from 'radix-ui';
 import { Check, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const Select = SelectPrimitive.Root;
+/**
+ * Radix's Root, without one of its quirks: when `value` is changed from
+ * outside — a form reset as soon as its data loads, say — in the same render
+ * that first draws the options, Radix's hidden native <select> doesn't have
+ * an option for it yet, reads back "", and Radix passes that on as if it
+ * were picked. No item can have "" as its value, so that's never a real
+ * choice; it's dropped here.
+ */
+const Select = ({
+  onValueChange,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Root>) => (
+  <SelectPrimitive.Root
+    {...props}
+    onValueChange={
+      onValueChange &&
+      ((value: string) => {
+        if (value !== '') onValueChange(value);
+      })
+    }
+  />
+);
 const SelectGroup = SelectPrimitive.Group;
 const SelectValue = SelectPrimitive.Value;
 

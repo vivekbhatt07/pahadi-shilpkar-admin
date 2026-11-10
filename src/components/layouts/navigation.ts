@@ -13,6 +13,7 @@ import {
   MessageSquare,
   Package,
   PackageOpen,
+  Paintbrush,
   Palette,
   Percent,
   ReceiptIndianRupee,
@@ -188,6 +189,13 @@ export const SETTINGS_ITEMS: TNavItem[] = [
     to: ROUTES.PRIVATE.SETTINGS.STORE,
     icon: Store,
     keywords: 'whatsapp contact social low stock',
+  },
+  {
+    label: 'Branding',
+    to: ROUTES.PRIVATE.SETTINGS.BRANDING,
+    icon: Paintbrush,
+    keywords:
+      'logo favicon icon header footer copyright tagline hero sign in dark light mode storefront',
   },
   {
     label: 'Costing',

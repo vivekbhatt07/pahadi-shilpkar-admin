@@ -1,7 +1,8 @@
+import { useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { FormProvider, useForm } from 'react-hook-form';
+import { FormProvider, useForm, useWatch } from 'react-hook-form';
 import { MemoryRouter } from 'react-router';
 import { beforeAll, describe, expect, it } from 'vitest';
 
@@ -15,7 +16,7 @@ type TValues = {
   deliveryFee: number | null;
 };
 
-const STORE: StoreSettings = {
+const STORE = {
   whatsappNumber: null,
   whatsappMessageTemplate: null,
   deliveryCharge: 'EXTRA',
@@ -28,7 +29,7 @@ const STORE: StoreSettings = {
   lowStockThreshold: 5,
   showStockLeft: true,
   updatedAt: null,
-};
+} as StoreSettings;
 
 const Harness = ({
   scope,
@@ -102,6 +103,42 @@ describe('DeliveryChargeField', () => {
     await pick('Charged extra');
     expect(screen.getByRole('spinbutton')).toHaveValue(null);
     expect(preview()).toHaveTextContent('Excluding delivery charges');
+  });
+
+  it('keeps a saved charge that arrives right after the form first renders', async () => {
+    // As Store settings does: empty on the first render, then reset with
+    // what GET /api/settings answered — before the field's options exist
+    const Reloaded = () => {
+      const form = useForm<TValues>({
+        defaultValues: { deliveryCharge: null, deliveryFee: null },
+      });
+      const saved = useWatch({ control: form.control, name: 'deliveryCharge' });
+      useEffect(() => {
+        form.reset({ deliveryCharge: 'EXTRA', deliveryFee: 120 });
+      }, [form]);
+      return (
+        <FormProvider {...form}>
+          <form>
+            <DeliveryChargeField scope="store" />
+            <output>{JSON.stringify(saved)}</output>
+          </form>
+        </FormProvider>
+      );
+    };
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(QUERY_KEYS.SETTINGS.GET, STORE);
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <Reloaded />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByRole('spinbutton')).toHaveValue(120);
+    expect(screen.getByRole('status')).toHaveTextContent('"EXTRA"');
+    expect(screen.getByRole('combobox')).toHaveTextContent('Charged extra');
+    expect(screen.getByRole('spinbutton')).toHaveValue(120);
   });
 
   it('offers "not mentioned" as the store default, with nothing to show', () => {

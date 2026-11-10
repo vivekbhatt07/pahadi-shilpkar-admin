@@ -89,7 +89,7 @@ const DashboardPage = () => {
   const pendingTestimonialCount = counts?.testimonials.pending ?? 0;
   const photoRequestCount = counts?.testimonials.photoRequests ?? 0;
   const storagePercent = storageUsage.data?.usedPercent ?? null;
-  const failedJobCount = counts?.jobs.failed ?? 0;
+  const failedJobCount = counts?.jobs?.failed ?? 0;
   const [showFailedJobs, setShowFailedJobs] = useState(false);
 
   const greeting = user?.firstName
