@@ -94,6 +94,9 @@ export const SecurityPage = lazyPage(
 export const StoreSettingsPage = lazyPage(
   () => import('@/pages/private/settings/store'),
 );
+export const BrandingSettingsPage = lazyPage(
+  () => import('@/pages/private/settings/branding'),
+);
 export const CostingSettingsPage = lazyPage(
   () => import('@/pages/private/settings/costing'),
 );

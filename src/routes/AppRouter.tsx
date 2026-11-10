@@ -11,6 +11,7 @@ import {
   ActivityPage,
   AppearancePage,
   BannersPage,
+  BrandingSettingsPage,
   CategoriesPage,
   ComboDetailPage,
   CombosPage,
@@ -158,6 +159,7 @@ export const AppRouter = () => {
             <Route path="profile" element={<ProfilePage />} />
             <Route path="security" element={<SecurityPage />} />
             <Route path="store" element={<StoreSettingsPage />} />
+            <Route path="branding" element={<BrandingSettingsPage />} />
             <Route path="costing" element={<CostingSettingsPage />} />
             <Route path="storage" element={<PhotoStoragePage />} />
             <Route path="appearance" element={<AppearancePage />} />

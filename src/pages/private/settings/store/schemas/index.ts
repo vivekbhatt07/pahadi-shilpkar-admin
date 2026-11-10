@@ -14,7 +14,7 @@ import {
 
 const { SETTINGS, EMAIL, URL } = VALIDATION_MESSAGES;
 
-const optionalUrl = z
+export const optionalUrl = z
   .string()
   .trim()
   .refine(

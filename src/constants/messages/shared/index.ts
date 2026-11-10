@@ -130,6 +130,14 @@ export const VALIDATION_MESSAGES = {
     TEMPLATE_MAX: 'Message template must be 500 characters or fewer',
     CONTACT_PHONE_MAX: 'Phone number must be 20 characters or fewer',
   },
+  BRANDING: {
+    FOOTER_TAGLINE_MAX: 'Tagline must be 80 characters or fewer',
+    FOOTER_ABOUT_MAX: 'Description must be 400 characters or fewer',
+    FOOTER_COPYRIGHT_MAX: 'Copyright line must be 120 characters or fewer',
+    FOOTER_NOTE_MAX: 'Note must be 200 characters or fewer',
+    AUTH_HEADLINE_MAX: 'Headline must be 120 characters or fewer',
+    AUTH_DESCRIPTION_MAX: 'Text must be 400 characters or fewer',
+  },
   BANNER: {
     TITLE_REQUIRED: 'Title is required',
     TITLE_MAX: 'Title must be 80 characters or fewer',

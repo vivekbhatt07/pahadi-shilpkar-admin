@@ -440,8 +440,11 @@ export interface DashboardStats {
   };
   /** `new` = status NEW, not looked at yet. */
   inquiries: { total: number; new: number };
-  /** Background jobs that gave up — emails or cleanups that never ran. */
-  jobs: { failed: number };
+  /**
+   * Background jobs that gave up — emails or cleanups that never ran. Missing
+   * while the API is a deploy behind this panel, so read it with `?.`.
+   */
+  jobs?: { failed: number };
   whatsappConfigured: boolean;
 }
 
@@ -554,6 +557,22 @@ export interface StoreSettings {
   lowStockThreshold: number;
   /** "Only 3 left" on the storefront while stock is low. */
   showStockLeft: boolean;
+  /** Storefront branding — null keeps its built-in logo or wording. */
+  headerLogoLight: string | null;
+  headerLogoDark: string | null;
+  footerLogoLight: string | null;
+  footerLogoDark: string | null;
+  favicon: string | null;
+  heroImage: string | null;
+  authLogo: string | null;
+  authImage: string | null;
+  authHeadline: string | null;
+  authDescription: string | null;
+  footerTagline: string | null;
+  footerAbout: string | null;
+  /** {{year}} becomes the current year. */
+  footerCopyright: string | null;
+  footerNote: string | null;
   /** Null until first saved. */
   updatedAt: string | null;
 }
@@ -1096,6 +1115,20 @@ export interface UpdateSettingsPayload extends DeliveryPayload {
   youtubeUrl?: string | null;
   lowStockThreshold?: number;
   showStockLeft?: boolean;
+  headerLogoLight?: string | null;
+  headerLogoDark?: string | null;
+  footerLogoLight?: string | null;
+  footerLogoDark?: string | null;
+  favicon?: string | null;
+  heroImage?: string | null;
+  authLogo?: string | null;
+  authImage?: string | null;
+  authHeadline?: string | null;
+  authDescription?: string | null;
+  footerTagline?: string | null;
+  footerAbout?: string | null;
+  footerCopyright?: string | null;
+  footerNote?: string | null;
 }
 
 export interface BannerListParams {
